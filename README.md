@@ -4,6 +4,7 @@ It is a small backend for a graphql schema which protects against malicious requ
 
 The current logic is simple and efficient (early bail out)
 
+
 # Installation
 ````
 pip install graphene-protector
@@ -58,4 +59,5 @@ If you want some new or better algorithms integrated just make a PR
 
 
 # related projects:
-* secure-graphene: lacks django integration and more sophisticated query limitations and yeah the not invented here syndrom
+* secure-graphene: lacks django integration, some features and has a not so easy findable name.
+  But I accept: it is the "not invented here"-syndrome

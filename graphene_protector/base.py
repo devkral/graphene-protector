@@ -33,8 +33,9 @@ def get_fragments(definitions):
 
 def check_resource_usage(
     selection_set, fragments, depth_limit, selections_limit, complexity_limit,
-    level=1, selections=1
+    level=1
 ):
+    selections = 1
     max_depth = level
     if depth_limit and max_depth > depth_limit:
         raise DepthLimitReached('Query is too deep')
@@ -42,23 +43,26 @@ def check_resource_usage(
         if isinstance(field, FragmentSpread):
             field = fragments.get(field.name.value)
         if field.selection_set:
-            new_depth, selections = check_resource_usage(
+            new_depth, local_selections = check_resource_usage(
                 field.selection_set,
                 fragments,
                 depth_limit,
                 selections_limit,
                 complexity_limit,
-                level=level + 1,
-                selections=selections + 1
+                level=level + 1
             )
+            selections += local_selections
             if selections_limit and selections > selections_limit:
                 raise SelectionsLimitReached(
-                    'Query queries too much'
+                    'Query selects too much'
                 )
+            if (
+                complexity_limit and
+                (new_depth-level) * local_selections > complexity_limit
+            ):
+                ComplexityLimitReached('Query is too complex')
             if new_depth > max_depth:
                 max_depth = new_depth
-    if complexity_limit and max_depth * selections > complexity_limit:
-        ComplexityLimitReached('Query is too complex')
     return max_depth, selections
 
 

@@ -40,7 +40,7 @@ result = schema.execute(query_string, backend=backend)
 Following extra keyword arguments are supported:
 * depth_limit: max depth
 * selections_limit: max selections
-* complexity_limit: max (depth * selections)
+* complexity_limit: max (depth subtree * selections subtree)
 
 they overwrite django settings if specified
 

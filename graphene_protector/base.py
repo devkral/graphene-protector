@@ -73,7 +73,7 @@ class ProtectorBackend(GraphQLCoreBackend):
 
     def __init__(
         self, *args,
-        depth_limit=10, selections_limit=None, complexity_limit=100, **kwargs
+        depth_limit=20, selections_limit=None, complexity_limit=100, **kwargs
     ):
         super().__init__(*args, **kwargs)
         self.depth_limit = depth_limit

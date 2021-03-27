@@ -26,6 +26,17 @@ Integrate with:
 # schema.py
 # replace normal Schema import with:
 from graphene_protector.django import Schema
+schema = Schema(query=Query, mutation=Mutation)
+```
+
+and add in django settings to GRAPHENE
+
+```python 3
+
+GRAPHENE = {
+    ...
+    "SCHEMA": "path.to.schema",
+}
 ```
 
 manual way

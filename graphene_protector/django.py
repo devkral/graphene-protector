@@ -30,10 +30,7 @@ class Limits(base.Limits, settings=Settings()):
 
 class ProtectorBackend(base.ProtectorBackend):
     def __init__(self, *args, **kwargs):
-        limits = Limits()
-        kwargs.setdefault("depth_limit", limits.depth)
-        kwargs.setdefault("selections_limit", limits.selections)
-        kwargs.setdefault("complexity_limit", limits.complexity)
+        kwargs.setdefault("limits", Limits())
         super().__init__(*args, **kwargs)
 
 

@@ -105,18 +105,11 @@ def check_resource_usage(
 
 
 class ProtectorBackend(GraphQLCoreBackend):
-    depth_limit = None
-    selections_limit = None
-    complexity_limit = None
+    default_limits = None
 
-    def __init__(
-        self, *args,
-        depth_limit=20, selections_limit=None, complexity_limit=100, **kwargs
-    ):
+    def __init__(self, *args, limits=Limits(), **kwargs):
         super().__init__(*args, **kwargs)
-        self.depth_limit = depth_limit
-        self.selections_limit = selections_limit
-        self.complexity_limit = complexity_limit
+        self.default_limits = limits
 
     def document_from_string(self, schema, document_string):
         document = super().document_from_string(schema, document_string)
@@ -131,9 +124,9 @@ class ProtectorBackend(GraphQLCoreBackend):
             check_resource_usage(
                 definition.selection_set,
                 fragments,
-                self.depth_limit,
-                self.selections_limit,
-                self.complexity_limit
+                self.default_limits.depth,
+                self.default_limits.selections,
+                self.default_limits.complexity
             )
 
         return document

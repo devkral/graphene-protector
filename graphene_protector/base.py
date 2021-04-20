@@ -121,12 +121,45 @@ class ProtectorBackend(GraphQLCoreBackend):
             if not isinstance(definition, OperationDefinition):
                 continue
 
+            limits = self._current_operation_limits(schema, definition)
+
             check_resource_usage(
                 definition.selection_set,
                 fragments,
-                self.default_limits.depth,
-                self.default_limits.selections,
-                self.default_limits.complexity
+                limits.depth,
+                limits.selections,
+                limits.complexity
             )
 
         return document
+
+    def _current_operation_limits(self, schema, definition):
+        # operation type is 'query' or 'mutation'
+        operation_type = definition.operation
+
+        # query or mutation name
+        operation_name = definition.selection_set.selections[0].name.value
+
+        # operator (query or mutation) object defined in the schema
+        operator = getattr(schema, f'_{operation_type}')
+
+        # retrieve optional limitation attributes defined for the current operation
+        try:
+            optional_operation_limits = getattr(
+                operator, f'limit_{operation_name}'
+            )
+        except AttributeError:
+            optional_operation_limits = None
+
+        # use optional limits if available, or fallback to default limits
+        if optional_operation_limits is not None:
+            if not issubclass(type(optional_operation_limits), Limits):
+                object_name = f'schema._{operation_type}.limit_{operation_name}'
+                raise TypeError(
+                    f'`{object_name}` is not a subclass of Limits'
+                )
+            limits = optional_operation_limits
+        else:
+            limits = self.default_limits
+
+        return limits

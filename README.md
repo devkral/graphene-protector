@@ -14,6 +14,8 @@ pip install graphene-protector
 
 ## Django
 
+### Project's wide limits
+
 This adds to django following settings:
 
 - GRAPHENE_PROTECTOR_DEPTH_LIMIT: max depth
@@ -50,19 +52,45 @@ result = schema.execute(query_string, backend=backend)
 
 ```
 
-## Other/Manually
+### Limits per operation
 
-Following extra keyword arguments are supported:
+Beside project's wide limits set with `GRAPHENE_PROTECTOR_*`, it is also
+possible to set those limits per operation (per query or mutation).
 
-- depth_limit: max depth (default: 20, None disables feature)
-- selections_limit: max selections (default: None, None disables feature)
-- complexity_limit: max (depth subtree \* selections subtree) (default: 100, None disables feature)
-
-they overwrite django settings if specified
+To setup limits per operation, just add `limit_${operation}` attribute to your
+`Query` or `Mutation` object. For example:
 
 ```python 3
-from graphene_protector import ProtectorBackend
-backend = ProtectorBackend(depth_limit=20, selections_limit=None, complexity_limit=100)
+from graphene_protector.django import Limits
+
+class UserType(DjangoObjectType):
+    # ...
+
+class Query(graphene.ObjectType):
+    users = graphene.List(UserType)
+    limit_users = Limits(depth=1, selections=3, complexity=None)
+    # ...
+```
+
+Following keywords arguments are supported in `Limits` object:
+- `depth`: max depth
+- `selections`: max selections
+- `complexity`: max (depth subtree \* selections subtree)
+
+These keywords, *if specified*, overwrite `GRAPHENE_PROTECTOR_*` (django) settings.
+
+If none of these keywords nor `GRAPHENE_PROTECTOR_*` settings are specified, the default values are
+- `depth`: 20
+- `selections`: `None`
+- `complexity`: 100
+
+Using `None` in one of these fields disables the feature.
+
+## Other/Manually
+
+```python 3
+from graphene_protector import ProtectorBackend, Limits
+backend = ProtectorBackend(limits=Limits(depth=20, selections=None, complexity=100))
 schema = graphene.Schema(query=Query)
 result = schema.execute(query_string, backend=backend)
 

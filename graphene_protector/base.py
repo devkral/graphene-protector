@@ -1,9 +1,25 @@
+from inspect import getmembers
 from graphql.backend.core import GraphQLCoreBackend
 from graphql.language.ast import (
     FragmentDefinition,
     FragmentSpread,
     OperationDefinition
 )
+
+
+class Settings:
+    depth_limit = 20
+    selections_limit = None
+    complexity_limit = 100
+
+    def __init__(self, *args, **kwargs):
+        # For every self attribute, get same attribute's name from kwargs, and save it if it exists
+        # Alternatively, use the already set value
+        # ie. if depth_limit=1 has been given as a kwarg, it will be saved as self.depth_limit
+        # else, self.depth_limit will be used as default value
+        for attribute, value in getmembers(self):
+            if not callable(attribute) and not attribute.startswith('_'):
+                self.__dict__[attribute] = kwargs.get(attribute, value)
 
 
 class ResourceLimitReached(Exception):

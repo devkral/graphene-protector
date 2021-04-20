@@ -5,7 +5,7 @@ import graphene
 from . import base
 
 
-class ProtectorBackend(base.ProtectorBackend):
+class Settings(base.Settings):
     def __init__(self, *args, **kwargs):
         if hasattr(settings, "GRAPHENE_PROTECTOR_DEPTH_LIMIT"):
             kwargs.setdefault(
@@ -21,6 +21,19 @@ class ProtectorBackend(base.ProtectorBackend):
                 "complexity_limit",
                 settings.GRAPHENE_PROTECTOR_COMPLEXITY_LIMIT
             )
+        super().__init__(*args, **kwargs)
+
+
+class Limits(base.Limits, settings=Settings()):
+    pass
+
+
+class ProtectorBackend(base.ProtectorBackend):
+    def __init__(self, *args, **kwargs):
+        limits = Limits()
+        kwargs.setdefault("depth_limit", limits.depth)
+        kwargs.setdefault("selections_limit", limits.selections)
+        kwargs.setdefault("complexity_limit", limits.complexity)
         super().__init__(*args, **kwargs)
 
 

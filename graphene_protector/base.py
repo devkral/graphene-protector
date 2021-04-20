@@ -22,6 +22,28 @@ class Settings:
                 self.__dict__[attribute] = kwargs.get(attribute, value)
 
 
+class Limits:
+    depth = None
+    selections = None
+    complexity = None
+
+    _settings = Settings()
+
+    def __init_subclass__(cls, settings=_settings):
+        cls._settings = settings
+
+    def __init__(self, *args, **kwargs):
+        # For every self attribute, get same attribute's name from kwargs, and save it if it exists
+        # Alternatively, use default value from the settings
+        # ie. if depth=1 has been given as a kwarg, it will be saved as self.depth
+        # else, self._settings.depth will be used as default value
+        for attribute, value in getmembers(self):
+            if not callable(attribute) and not attribute.startswith('_'):
+                self.__dict__[attribute] = kwargs.get(
+                    attribute, self._settings.__dict__[f'{attribute}_limit']
+                )
+
+
 class ResourceLimitReached(Exception):
     pass
 

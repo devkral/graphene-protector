@@ -5,6 +5,7 @@ from graphql.language.ast import (
     FragmentSpread,
     OperationDefinition
 )
+from stringcase import snakecase
 
 
 class Settings:
@@ -139,6 +140,7 @@ class ProtectorBackend(GraphQLCoreBackend):
 
         # query or mutation name
         operation_name = definition.selection_set.selections[0].name.value
+        operation_name = snakecase(operation_name)
 
         # operator (query or mutation) object defined in the schema
         operator = getattr(schema, f'_{operation_type}')

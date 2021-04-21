@@ -155,6 +155,14 @@ optional = true
 python-versions = ">=3.5"
 
 [[package]]
+name = "stringcase"
+version = "1.2.0"
+description = "String case converter."
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "text-unidecode"
 version = "1.3"
 description = "The most basic Text::Unidecode port"
@@ -165,7 +173,7 @@ python-versions = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = ">3.5"
-content-hash = "4a81b0dae7f948d610fb2f5fad559feda865b4cbd01eb8a419b0751cf1890597"
+content-hash = "667240a2e693ee3182536791d3f87e1981feb751e2693086480e00e2962dc18d"
 
 [metadata.files]
 aniso8601 = [
@@ -214,6 +222,9 @@ six = [
 sqlparse = [
     {file = "sqlparse-0.4.1-py3-none-any.whl", hash = "sha256:017cde379adbd6a1f15a61873f43e8274179378e95ef3fede90b5aa64d304ed0"},
     {file = "sqlparse-0.4.1.tar.gz", hash = "sha256:0f91fd2e829c44362cbcfab3e9ae12e22badaa8a29ad5ff599f9ec109f0454e8"},
+]
+stringcase = [
+    {file = "stringcase-1.2.0.tar.gz", hash = "sha256:48a06980661908efe8d9d34eab2b6c13aefa2163b3ced26972902e3bdfd87008"},
 ]
 text-unidecode = [
     {file = "text-unidecode-1.3.tar.gz", hash = "sha256:bad6603bb14d279193107714b288be206cac565dfa49aa5b105294dd5c4aab93"},

@@ -5,23 +5,29 @@ import graphene
 from . import base
 
 
+def _get_default_from_settings(name, default):
+    if hasattr(settings, name):
+        return getattr(settings, name)
+    return default
+
+
 class ProtectorBackend(base.ProtectorBackend):
     def __init__(self, *args, **kwargs):
-        if hasattr(settings, "GRAPHENE_PROTECTOR_DEPTH_LIMIT"):
-            kwargs.setdefault(
-                "depth_limit", settings.GRAPHENE_PROTECTOR_DEPTH_LIMIT
-            )
-        if hasattr(settings, "GRAPHENE_PROTECTOR_SELECTIONS_LIMIT"):
-            kwargs.setdefault(
-                "selections_limit",
-                settings.GRAPHENE_PROTECTOR_SELECTIONS_LIMIT
-            )
-        if hasattr(settings, "GRAPHENE_PROTECTOR_COMPLEXITY_LIMIT"):
-            kwargs.setdefault(
-                "complexity_limit",
-                settings.GRAPHENE_PROTECTOR_COMPLEXITY_LIMIT
-            )
         super().__init__(*args, **kwargs)
+
+    def _limits_for_missing(self, name):
+        if name == "depth":
+            return _get_default_from_settings(
+                "GRAPHENE_PROTECTOR_DEPTH_LIMIT", 20
+            )
+        elif name == "selections":
+            return _get_default_from_settings(
+                "GRAPHENE_PROTECTOR_SELECTIONS_LIMIT", None
+            )
+        elif name == "complexity":
+            return _get_default_from_settings(
+                "GRAPHENE_PROTECTOR_COMPLEXITY_LIMIT", 100
+            )
 
 
 class Schema(graphene.Schema):

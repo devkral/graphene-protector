@@ -6,15 +6,17 @@ The current logic is simple and efficient (early bail out)
 
 # Installation
 
-```
+```sh
 pip install graphene-protector
+# in case of python <3.7
+#pip install dataclasses
 ```
 
 # Integration
 
 ## Django
 
-This adds to django following settings:
+This adds to django the following setting:
 
 - GRAPHENE_PROTECTOR_DEPTH_LIMIT: max depth
 - GRAPHENE_PROTECTOR_SELECTIONS_LIMIT: max selections
@@ -39,7 +41,7 @@ GRAPHENE = {
 }
 ```
 
-manual way
+manual way (note: import from django for including defaults from settings)
 
 ```python 3
 from graphene import Schema
@@ -50,9 +52,21 @@ result = schema.execute(query_string, backend=backend)
 
 ```
 
+manual way with custom Limits
+
+```python 3
+from graphene import Schema
+from graphene_protector import Limits
+from graphene_protector.django import ProtectorBackend
+backend = ProtectorBackend(limits=Limits())
+schema = graphene.Schema(query=Query)
+result = schema.execute(query_string, backend=backend)
+
+```
+
 ## Other/Manually
 
-Following extra keyword arguments are supported:
+limits keyword with Limits object ist supported:
 
 - depth_limit: max depth (default: 20, None disables feature)
 - selections_limit: max selections (default: None, None disables feature)
@@ -61,8 +75,9 @@ Following extra keyword arguments are supported:
 they overwrite django settings if specified
 
 ```python 3
-from graphene_protector import ProtectorBackend
-backend = ProtectorBackend(depth_limit=20, selections_limit=None, complexity_limit=100)
+# note: Limits import from graphene_protector not from django
+from graphene_protector import ProtectorBackend, Limits
+backend = ProtectorBackend(limits=Limits(depth_limit=20, selections_limit=None, complexity_limit=100))
 schema = graphene.Schema(query=Query)
 result = schema.execute(query_string, backend=backend)
 

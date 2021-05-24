@@ -66,22 +66,33 @@ result = schema.execute(query_string, backend=backend)
 
 ## Other/Manually
 
-limits keyword with Limits object ist supported:
+limits keyword with Limits object is supported.
 
-- depth_limit: max depth (default: 20, None disables feature)
-- selections_limit: max selections (default: None, None disables feature)
-- complexity_limit: max (depth subtree \* selections subtree) (default: 100, None disables feature)
+A Limits object has following attributes:
 
-they overwrite django settings if specified
+- depth: max depth (default: 20, None disables feature)
+- selections: max selections (default: None, None disables feature)
+- complexity: max (depth subtree \* selections subtree) (default: 100, None disables feature)
+
+they overwrite django settings if specified. 
 
 ```python 3
 # note: Limits import from graphene_protector not from django
 from graphene_protector import ProtectorBackend, Limits
-backend = ProtectorBackend(limits=Limits(depth_limit=20, selections_limit=None, complexity_limit=100))
+backend = ProtectorBackend(limits=Limits(depth=20, selections=None, complexity=100))
 schema = graphene.Schema(query=Query)
 result = schema.execute(query_string, backend=backend)
 
 ```
+
+## decorating single fields
+
+Sometimes single fields should have different limits:
+
+```python
+    person1 = Limits(depth=10)(graphene.Field(Person))
+```
+Limits are inherited for unspecified parameters
 
 # Development
 

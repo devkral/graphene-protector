@@ -6,7 +6,7 @@ from graphql.language.ast import (
 )
 
 
-from dataclasses import dataclass, InitVar, fields
+from dataclasses import dataclass, fields, InitVar
 from typing import Union
 
 
@@ -16,14 +16,18 @@ class MISSING:
 
 @dataclass
 class Limits:
-    obj: InitVar = None
+    field: InitVar = None
     depth: Union[int, None, MISSING] = MISSING
     selections: Union[int, None, MISSING] = MISSING
     complexity: Union[int, None, MISSING] = MISSING
 
-    def __post_init__(self, obj):
-        # TODO: decorate base of obj with _graphene_protector_limits
-        pass
+    def __post_init__(self, field):
+        if field:
+            setattr(field, "_graphene_protector_limits", self)
+
+    def __call__(self, field):
+        setattr(field, "_graphene_protector_limits", self)
+        return field
 
 
 _missing_limits = Limits()
@@ -107,13 +111,14 @@ class ProtectorBackend(GraphQLCoreBackend):
             # only queries and mutations
             if not isinstance(definition, OperationDefinition):
                 continue
+            limits = self._current_operation_merged_limits(schema, definition)
 
             check_resource_usage(
                 definition.selection_set,
                 fragments,
-                self.depth_limit,
-                self.selections_limit,
-                self.complexity_limit,
+                limits["depth"],
+                limits["selections"],
+                limits["complexity"],
             )
 
         return document
@@ -131,18 +136,21 @@ class ProtectorBackend(GraphQLCoreBackend):
         # retrieve optional limitation attributes defined for the current
         # operation
         operation_limits = getattr(
-            operator, "_graphene_protector_limits", {}
-        ).get(operation_name, _missing_limits)
+            getattr(operator, operation_name),
+            "_graphene_protector_limits",
+            _missing_limits,
+        )
         _limits = {}
         for field in fields(operation_limits):
             value = getattr(operation_limits, field.name)
-            if not isinstance(value, MISSING):
-                return value
+            if value != MISSING:
+                _limits[field.name] = value
+                continue
             value = getattr(self.default_limits, field.name)
-            if not isinstance(value, MISSING):
-                return value
-            return self._limits_for_missing(field.name)
-
+            if value != MISSING:
+                _limits[field.name] = value
+                continue
+            _limits[field.name] = self._limits_for_missing(field.name)
         return _limits
 
     def _limits_for_missing(self, name):

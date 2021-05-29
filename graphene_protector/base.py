@@ -6,7 +6,7 @@ from graphql.language.ast import (
 )
 
 
-from dataclasses import dataclass, fields, InitVar
+from dataclasses import dataclass, fields, replace
 from typing import Union
 
 
@@ -16,14 +16,9 @@ class MISSING:
 
 @dataclass
 class Limits:
-    field: InitVar = None
     depth: Union[int, None, MISSING] = MISSING
     selections: Union[int, None, MISSING] = MISSING
     complexity: Union[int, None, MISSING] = MISSING
-
-    def __post_init__(self, field):
-        if field:
-            setattr(field, "_graphene_protector_limits", self)
 
     def __call__(self, field):
         setattr(field, "_graphene_protector_limits", self)
@@ -31,6 +26,7 @@ class Limits:
 
 
 _missing_limits = Limits()
+_default_limits = Limits(depth=20, selections=None, complexity=100)
 
 
 class ResourceLimitReached(Exception):
@@ -58,40 +54,64 @@ def get_fragments(definitions):
     }
 
 
+def merge_limits(old_limits, new_limits):
+    _limits = {}
+    for field in fields(new_limits):
+        value = getattr(new_limits, field.name)
+        if value != MISSING:
+            _limits[field.name] = value
+    return replace(old_limits, **_limits)
+
+
+def limits_for_field(field, old_limits):
+    # retrieve optional limitation attributes defined for the current
+    # operation
+    effective_limits = getattr(
+        field,
+        "_graphene_protector_limits",
+        _missing_limits,
+    )
+    return merge_limits(old_limits, effective_limits)
+
+
 def check_resource_usage(
     selection_set,
     fragments,
-    depth_limit,
-    selections_limit,
-    complexity_limit,
-    level=1,
+    limits,
+    level=0,
 ):
-    selections = 1
+    # level 0: starts on query level. Every query is level 1
+    selections = 0
     max_depth = level
-    if depth_limit and max_depth > depth_limit:
+    if limits.depth and max_depth > limits.depth:
         raise DepthLimitReached("Query is too deep")
     for field in selection_set.selections:
+        # must be before fragments.get
+        newlimits = limits_for_field(field, limits)
         if isinstance(field, FragmentSpread):
             field = fragments.get(field.name.value)
         if field.selection_set:
             new_depth, local_selections = check_resource_usage(
                 field.selection_set,
                 fragments,
-                depth_limit,
-                selections_limit,
-                complexity_limit,
+                newlimits,
                 level=level + 1,
             )
-            selections += local_selections
-            if selections_limit and selections > selections_limit:
-                raise SelectionsLimitReached("Query selects too much")
+            # called per query, selection
             if (
-                complexity_limit
-                and (new_depth - level) * local_selections > complexity_limit
+                limits.complexity
+                and (new_depth - level) * local_selections > limits.complexity
             ):
                 ComplexityLimitReached("Query is too complex")
+            # +1 because { ... } is also a selection/field
+            selections += local_selections + 1
             if new_depth > max_depth:
                 max_depth = new_depth
+        else:
+            selections += 1
+
+        if limits.selections and selections > limits.selections:
+            raise SelectionsLimitReached("Query selects too much")
     return max_depth, selections
 
 
@@ -111,52 +131,15 @@ class ProtectorBackend(GraphQLCoreBackend):
             # only queries and mutations
             if not isinstance(definition, OperationDefinition):
                 continue
-            limits = self._current_operation_merged_limits(schema, definition)
 
             check_resource_usage(
-                definition.selection_set,
-                fragments,
-                limits["depth"],
-                limits["selections"],
-                limits["complexity"],
+                definition.selection_set, fragments, self.get_default_limits()
             )
 
         return document
 
-    def _current_operation_merged_limits(self, schema, definition):
-        # operation type is 'query' or 'mutation'
-        operation_type = definition.operation
-
-        # query or mutation name
-        operation_name = definition.selection_set.selections[0].name.value
-
-        # operator (query or mutation) object defined in the schema
-        operator = getattr(schema, f"_{operation_type}")
-
-        # retrieve optional limitation attributes defined for the current
-        # operation
-        operation_limits = getattr(
-            getattr(operator, operation_name),
-            "_graphene_protector_limits",
-            _missing_limits,
+    def get_default_limits(self):
+        return merge_limits(
+            _default_limits,
+            self.default_limits,
         )
-        _limits = {}
-        for field in fields(operation_limits):
-            value = getattr(operation_limits, field.name)
-            if value != MISSING:
-                _limits[field.name] = value
-                continue
-            value = getattr(self.default_limits, field.name)
-            if value != MISSING:
-                _limits[field.name] = value
-                continue
-            _limits[field.name] = self._limits_for_missing(field.name)
-        return _limits
-
-    def _limits_for_missing(self, name):
-        if name == "depth":
-            return 20
-        elif name == "selections":
-            return None
-        elif name == "complexity":
-            return 100

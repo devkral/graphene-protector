@@ -13,6 +13,7 @@ graphene-django = { version = "*", optional=true }
 
 [tool.poetry.dev-dependencies]
 tox = "*"
+graphene-django = "*"
 
 [build-system]
 requires = ["poetry_core>=1.0.0"]

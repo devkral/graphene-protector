@@ -18,9 +18,9 @@ pip install graphene-protector
 
 This adds to django the following setting:
 
-- GRAPHENE_PROTECTOR_DEPTH_LIMIT: max depth
-- GRAPHENE_PROTECTOR_SELECTIONS_LIMIT: max selections
-- GRAPHENE_PROTECTOR_COMPLEXITY_LIMIT: max (depth \* selections)
+-   GRAPHENE_PROTECTOR_DEPTH_LIMIT: max depth
+-   GRAPHENE_PROTECTOR_SELECTIONS_LIMIT: max selections
+-   GRAPHENE_PROTECTOR_COMPLEXITY_LIMIT: max (depth \* selections)
 
 Integrate with:
 
@@ -52,7 +52,7 @@ result = schema.execute(query_string, backend=backend)
 
 ```
 
-manual way with custom Limits
+manual way with custom default Limits
 
 ```python 3
 from graphene import Schema
@@ -70,11 +70,11 @@ limits keyword with Limits object is supported.
 
 A Limits object has following attributes:
 
-- depth: max depth (default: 20, None disables feature)
-- selections: max selections (default: None, None disables feature)
-- complexity: max (depth subtree \* selections subtree) (default: 100, None disables feature)
+-   depth: max depth (default: 20, None disables feature)
+-   selections: max selections (default: None, None disables feature)
+-   complexity: max (depth subtree \* selections subtree) (default: 100, None disables feature)
 
-they overwrite django settings if specified. 
+they overwrite django settings if specified.
 
 ```python 3
 # note: Limits import from graphene_protector not from django
@@ -87,11 +87,14 @@ result = schema.execute(query_string, backend=backend)
 
 ## decorating single fields
 
+WARNING: does not work yet, we need to find a way to map between field and ast.field or getting the path. Elsewise a reliable mapping is not possible
+
 Sometimes single fields should have different limits:
 
 ```python
     person1 = Limits(depth=10)(graphene.Field(Person))
 ```
+
 Limits are inherited for unspecified parameters
 
 # Development
@@ -101,5 +104,5 @@ If you want some new or better algorithms integrated just make a PR
 
 # related projects:
 
-- secure-graphene: lacks django integration, some features and has a not so easy findable name.
-  But I accept: it is the "not invented here"-syndrome
+-   secure-graphene: lacks django integration, some features and has a not so easy findable name.
+    But I accept: it is the "not invented here"-syndrome

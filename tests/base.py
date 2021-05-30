@@ -14,45 +14,37 @@ class Person(graphene.ObjectType):
         return Person(id=self.id + 1, depth=self.depth - 1, age=34)
 
 
-class Query2(graphene.ObjectType):
+if __name__ == "__main__":
 
-    person1 = Limits()(graphene.Field(Person))
-    person2 = graphene.Field(Person)
+    class Query2(graphene.ObjectType):
 
-    def resolve_person1(root, info):
-        return Person(id=100, depth=10, age=34)
+        person1 = Limits()(graphene.Field(Person))
+        person2 = graphene.Field(Person)
 
-    def resolve_person2(root, info):
-        return Person(id=200, depth=10, age=34)
+        def resolve_person1(root, info):
+            return Person(id=100, depth=10, age=34)
 
+        def resolve_person2(root, info):
+            return Person(id=200, depth=10, age=34)
 
-backend = ProtectorBackend()
-schema = graphene.Schema(query=Query2)
-query = """
-    query something{
-      person1 {
-        id
-        age
-        child {
+    backend = ProtectorBackend()
+    schema = graphene.Schema(query=Query2)
+    query = """
+        query something{
+        person1 {
+            id
+            age
             child {
-                age
+                child {
+                    age
+                }
             }
         }
-      }
-      person2 {
-        id
-      }
-    }
-"""
-
-
-def test_query():
-    result = schema.execute(query, backend=backend)
-    assert not result.errors
-    # assert result.data == {"person1": {"id": "1", "age": 27}}
-
-
-if __name__ == "__main__":
+        person2 {
+            id
+        }
+        }
+    """
     result = schema.execute(query, backend=backend)
     print(result)
     print(result.data["person1"])

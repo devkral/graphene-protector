@@ -26,7 +26,7 @@ class Limits:
 
 
 _missing_limits = Limits()
-_default_limits = Limits(depth=20, selections=None, complexity=100)
+DEFAULT_LIMITS = Limits(depth=20, selections=None, complexity=100)
 
 
 class ResourceLimitReached(Exception):
@@ -138,9 +138,10 @@ class ProtectorBackend(GraphQLCoreBackend):
             # only queries and mutations
             if not isinstance(definition, OperationDefinition):
                 continue
+            operation_type = definition.operation
 
             check_resource_usage(
-                schema._query,
+                getattr(schema, f"_{operation_type}"),
                 definition.selection_set,
                 fragments,
                 self.get_default_limits(),
@@ -150,6 +151,6 @@ class ProtectorBackend(GraphQLCoreBackend):
 
     def get_default_limits(self):
         return merge_limits(
-            _default_limits,
+            DEFAULT_LIMITS,
             self.default_limits,
         )

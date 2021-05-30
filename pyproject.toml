@@ -12,7 +12,7 @@ graphene = "*"
 graphene-django = { version = "*", optional=true }
 
 [tool.poetry.dev-dependencies]
-tox = "*"
+tox = ">=4.0alpha1"
 graphene-django = "*"
 
 [build-system]

@@ -68,14 +68,6 @@ result = schema.execute(query_string, backend=backend)
 
 limits keyword with Limits object is supported.
 
-A Limits object has following attributes:
-
--   depth: max depth (default: 20, None disables feature)
--   selections: max selections (default: None, None disables feature)
--   complexity: max (depth subtree \* selections subtree) (default: 100, None disables feature)
-
-they overwrite django settings if specified.
-
 ```python 3
 # note: Limits import from graphene_protector not from django
 from graphene_protector import ProtectorBackend, Limits
@@ -84,6 +76,27 @@ schema = graphene.Schema(query=Query)
 result = schema.execute(query_string, backend=backend)
 
 ```
+
+you can also set this backend as global default via
+```python 3
+from graphql import set_default_backend
+# note: Limits import from graphene_protector not from django but this would be possible
+from graphene_protector import ProtectorBackend, Limits
+set_default_backend(ProtectorBackend(limits=Limits(depth=20, selections=None, complexity=100)))
+schema = graphene.Schema(query=Query)
+result = schema.execute(query_string)
+
+```
+
+## Limits
+
+A Limits object has following attributes:
+
+-   depth: max depth (default: 20, None disables feature)
+-   selections: max selections (default: None, None disables feature)
+-   complexity: max (depth subtree \* selections subtree) (default: 100, None disables feature)
+
+they overwrite django settings if specified.
 
 ## decorating single fields
 
@@ -104,3 +117,7 @@ If you want some new or better algorithms integrated just make a PR
 
 -   secure-graphene: lacks django integration, some features and has a not so easy findable name.
     But I accept: it is the "not invented here"-syndrome
+
+
+# TODO
+-   test mutations

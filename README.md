@@ -6,19 +6,21 @@ The current logic is simple and efficient (early bail out)
 
 # Installation
 
-```
+```sh
 pip install graphene-protector
+# in case of python <3.7
+#pip install dataclasses
 ```
 
 # Integration
 
 ## Django
 
-This adds to django following settings:
+This adds to django the following setting:
 
-- GRAPHENE_PROTECTOR_DEPTH_LIMIT: max depth
-- GRAPHENE_PROTECTOR_SELECTIONS_LIMIT: max selections
-- GRAPHENE_PROTECTOR_COMPLEXITY_LIMIT: max (depth \* selections)
+-   GRAPHENE_PROTECTOR_DEPTH_LIMIT: max depth
+-   GRAPHENE_PROTECTOR_SELECTIONS_LIMIT: max selections
+-   GRAPHENE_PROTECTOR_COMPLEXITY_LIMIT: max (depth \* selections)
 
 Integrate with:
 
@@ -39,7 +41,7 @@ GRAPHENE = {
 }
 ```
 
-manual way
+manual way (note: import from django for including defaults from settings)
 
 ```python 3
 from graphene import Schema
@@ -50,23 +52,48 @@ result = schema.execute(query_string, backend=backend)
 
 ```
 
-## Other/Manually
-
-Following extra keyword arguments are supported:
-
-- depth_limit: max depth (default: 20, None disables feature)
-- selections_limit: max selections (default: None, None disables feature)
-- complexity_limit: max (depth subtree \* selections subtree) (default: 100, None disables feature)
-
-they overwrite django settings if specified
+manual way with custom default Limits
 
 ```python 3
-from graphene_protector import ProtectorBackend
-backend = ProtectorBackend(depth_limit=20, selections_limit=None, complexity_limit=100)
+from graphene import Schema
+from graphene_protector import Limits
+from graphene_protector.django import ProtectorBackend
+backend = ProtectorBackend(limits=Limits())
 schema = graphene.Schema(query=Query)
 result = schema.execute(query_string, backend=backend)
 
 ```
+
+## Other/Manually
+
+limits keyword with Limits object is supported.
+
+A Limits object has following attributes:
+
+-   depth: max depth (default: 20, None disables feature)
+-   selections: max selections (default: None, None disables feature)
+-   complexity: max (depth subtree \* selections subtree) (default: 100, None disables feature)
+
+they overwrite django settings if specified.
+
+```python 3
+# note: Limits import from graphene_protector not from django
+from graphene_protector import ProtectorBackend, Limits
+backend = ProtectorBackend(limits=Limits(depth=20, selections=None, complexity=100))
+schema = graphene.Schema(query=Query)
+result = schema.execute(query_string, backend=backend)
+
+```
+
+## decorating single fields
+
+Sometimes single fields should have different limits:
+
+```python
+    person1 = Limits(depth=10)(graphene.Field(Person))
+```
+
+Limits are inherited for unspecified parameters
 
 # Development
 
@@ -75,5 +102,5 @@ If you want some new or better algorithms integrated just make a PR
 
 # related projects:
 
-- secure-graphene: lacks django integration, some features and has a not so easy findable name.
-  But I accept: it is the "not invented here"-syndrome
+-   secure-graphene: lacks django integration, some features and has a not so easy findable name.
+    But I accept: it is the "not invented here"-syndrome

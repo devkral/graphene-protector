@@ -2,8 +2,31 @@ from graphql.backend.core import GraphQLCoreBackend
 from graphql.language.ast import (
     FragmentDefinition,
     FragmentSpread,
-    OperationDefinition
+    OperationDefinition,
 )
+
+
+from dataclasses import dataclass, fields, replace
+from typing import Union
+
+
+class MISSING:
+    pass
+
+
+@dataclass
+class Limits:
+    depth: Union[int, None, MISSING] = MISSING
+    selections: Union[int, None, MISSING] = MISSING
+    complexity: Union[int, None, MISSING] = MISSING
+
+    def __call__(self, field):
+        setattr(field, "_graphene_protector_limits", self)
+        return field
+
+
+_missing_limits = Limits()
+_default_limits = Limits(depth=20, selections=None, complexity=100)
 
 
 class ResourceLimitReached(Exception):
@@ -31,54 +54,80 @@ def get_fragments(definitions):
     }
 
 
+def merge_limits(old_limits, new_limits):
+    _limits = {}
+    for field in fields(new_limits):
+        value = getattr(new_limits, field.name)
+        if value != MISSING:
+            _limits[field.name] = value
+    return replace(old_limits, **_limits)
+
+
+def limits_for_field(field, old_limits):
+    # retrieve optional limitation attributes defined for the current
+    # operation
+    effective_limits = getattr(
+        field,
+        "_graphene_protector_limits",
+        _missing_limits,
+    )
+    return merge_limits(old_limits, effective_limits)
+
+
 def check_resource_usage(
-    selection_set, fragments, depth_limit, selections_limit, complexity_limit,
-    level=1
+    schema,
+    selection_set,
+    fragments,
+    limits,
+    level=0,
 ):
-    selections = 1
+    # level 0: starts on query level. Every query is level 1
+    selections = 0
     max_depth = level
-    if depth_limit and max_depth > depth_limit:
-        raise DepthLimitReached('Query is too deep')
-    for field in selection_set.selections:
-        if isinstance(field, FragmentSpread):
-            field = fragments.get(field.name.value)
+    if limits.depth and max_depth > limits.depth:
+        raise DepthLimitReached("Query is too deep")
+    for field_orig in selection_set.selections:
+        if isinstance(field_orig, FragmentSpread):
+            field = fragments.get(field_orig.name.value)
+        else:
+            field = field_orig
         if field.selection_set:
+            subschema = getattr(schema, field_orig.name.value).type
+            sub_limits = limits_for_field(
+                getattr(schema, field_orig.name.value), limits
+            )
             new_depth, local_selections = check_resource_usage(
+                subschema,
                 field.selection_set,
                 fragments,
-                depth_limit,
-                selections_limit,
-                complexity_limit,
-                level=level + 1
+                sub_limits,
+                level=level + 1,
             )
-            selections += local_selections
-            if selections_limit and selections > selections_limit:
-                raise SelectionsLimitReached(
-                    'Query selects too much'
-                )
+            # called per query, selection
             if (
-                complexity_limit and
-                (new_depth-level) * local_selections > complexity_limit
+                sub_limits.complexity
+                and (new_depth - level) * local_selections
+                > sub_limits.complexity
             ):
-                ComplexityLimitReached('Query is too complex')
+                raise ComplexityLimitReached("Query is too complex")
+            # ignore selection_set fields because we have depth for that
+            selections += local_selections
             if new_depth > max_depth:
                 max_depth = new_depth
+        else:
+            selections += 1
+
+        if limits.selections and selections > limits.selections:
+            raise SelectionsLimitReached("Query selects too much")
     return max_depth, selections
 
 
 class ProtectorBackend(GraphQLCoreBackend):
-    depth_limit = None
-    selections_limit = None
-    complexity_limit = None
+    default_limits = None
 
-    def __init__(
-        self, *args,
-        depth_limit=20, selections_limit=None, complexity_limit=100, **kwargs
-    ):
+    def __init__(self, *args, limits=Limits(), **kwargs):
         super().__init__(*args, **kwargs)
-        self.depth_limit = depth_limit
-        self.selections_limit = selections_limit
-        self.complexity_limit = complexity_limit
+        self.default_limits = limits
 
     def document_from_string(self, schema, document_string):
         document = super().document_from_string(schema, document_string)
@@ -91,11 +140,16 @@ class ProtectorBackend(GraphQLCoreBackend):
                 continue
 
             check_resource_usage(
+                schema._query,
                 definition.selection_set,
                 fragments,
-                self.depth_limit,
-                self.selections_limit,
-                self.complexity_limit
+                self.get_default_limits(),
             )
 
         return document
+
+    def get_default_limits(self):
+        return merge_limits(
+            _default_limits,
+            self.default_limits,
+        )

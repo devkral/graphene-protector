@@ -7,6 +7,6 @@ INSTALLED_APPS = [
 GRAPHENE_PROTECTOR_DEPTH_LIMIT = 2
 GRAPHENE_PROTECTOR_SELECTIONS_LIMIT = 50
 DATABASES = {
-    "default": {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory"}
+    "default": {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory:"}
 }
 GRAPHENE = {"SCHEMA": "tests.django.schema.schema"}

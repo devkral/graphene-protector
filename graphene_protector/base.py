@@ -75,6 +75,7 @@ def limits_for_field(field, old_limits):
 
 
 def check_resource_usage(
+    schema,
     selection_set,
     fragments,
     limits,
@@ -85,13 +86,18 @@ def check_resource_usage(
     max_depth = level
     if limits.depth and max_depth > limits.depth:
         raise DepthLimitReached("Query is too deep")
-    for field in selection_set.selections:
-        # must be before fragments.get
-        sub_limits = limits_for_field(field, limits)
-        if isinstance(field, FragmentSpread):
-            field = fragments.get(field.name.value)
+    for field_orig in selection_set.selections:
+        if isinstance(field_orig, FragmentSpread):
+            field = fragments.get(field_orig.name.value)
+        else:
+            field = field_orig
         if field.selection_set:
+            subschema = getattr(schema, field_orig.name.value).type
+            sub_limits = limits_for_field(
+                getattr(schema, field_orig.name.value), limits
+            )
             new_depth, local_selections = check_resource_usage(
+                subschema,
                 field.selection_set,
                 fragments,
                 sub_limits,
@@ -134,6 +140,7 @@ class ProtectorBackend(GraphQLCoreBackend):
                 continue
 
             check_resource_usage(
+                schema._query,
                 definition.selection_set,
                 fragments,
                 self.get_default_limits(),

@@ -87,8 +87,6 @@ result = schema.execute(query_string, backend=backend)
 
 ## decorating single fields
 
-WARNING: does not work yet, we need to find a way to map between field and ast.field or getting the path. Elsewise a reliable mapping is not possible
-
 Sometimes single fields should have different limits:
 
 ```python

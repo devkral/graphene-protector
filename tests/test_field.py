@@ -24,7 +24,7 @@ class Person4(graphene.ObjectType):
     id = graphene.ID()
     age = graphene.Int()
     depth = graphene.Int()
-    child = Limits(depth=1)(graphene.Field(Person))
+    child = Limits(depth=3)(graphene.Field(Person))
 
     def resolve_child(self, info):
         if self.depth == 0:
@@ -66,9 +66,7 @@ class TestField(unittest.TestCase):
     query something{
       setDirectly {
         child {
-            child {
-                age
-            }
+            age
         }
       }
     }
@@ -82,9 +80,7 @@ class TestField(unittest.TestCase):
       setDirectly {
         child {
             child {
-                child {
-                    age
-                }
+                age
             }
         }
       }
@@ -156,9 +152,7 @@ class TestField(unittest.TestCase):
     query something{
       setHierachy {
         child {
-
             child {
-
                 child {
                     age
                 }

@@ -4,10 +4,28 @@ from graphql.language.ast import (
     FragmentSpread,
     OperationDefinition,
 )
-
+import re
 
 from dataclasses import dataclass, fields, replace
 from typing import Union
+
+
+# Adapted from this response in Stackoverflow
+# http://stackoverflow.com/a/19053800/1072990
+def to_camel_case(snake_str):
+    components = snake_str.split("_")
+    # We capitalize the first letter of each component except the first one
+    # with the 'capitalize' method and join them together.
+    return components[0] + "".join(
+        x.capitalize() if x else "_" for x in components[1:]
+    )
+
+
+# From this response in Stackoverflow
+# http://stackoverflow.com/a/1176023/1072990
+def to_snake_case(name):
+    s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
+    return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
 
 
 class MISSING:
@@ -79,6 +97,7 @@ def check_resource_usage(
     selection_set,
     fragments,
     limits,
+    auto_snakecase=False,
     level=0,
 ):
     # level 0: starts on query level. Every query is level 1
@@ -87,20 +106,22 @@ def check_resource_usage(
     if limits.depth and max_depth > limits.depth:
         raise DepthLimitReached("Query is too deep")
     for field_orig in selection_set.selections:
+        fieldname = field_orig.name.value
+        if auto_snakecase and not hasattr(schema, fieldname):
+            fieldname = to_snake_case(fieldname)
         if isinstance(field_orig, FragmentSpread):
             field = fragments.get(field_orig.name.value)
         else:
             field = field_orig
         if field.selection_set:
-            subschema = getattr(schema, field_orig.name.value).type
-            sub_limits = limits_for_field(
-                getattr(schema, field_orig.name.value), limits
-            )
+            schema_field = getattr(schema, fieldname)
+            sub_limits = limits_for_field(schema_field, limits)
             new_depth, local_selections = check_resource_usage(
-                subschema,
+                schema_field.type,
                 field.selection_set,
                 fragments,
                 sub_limits,
+                auto_snakecase=auto_snakecase,
                 level=level + 1,
             )
             # called per query, selection
@@ -145,6 +166,7 @@ class ProtectorBackend(GraphQLCoreBackend):
                 definition.selection_set,
                 fragments,
                 self.get_default_limits(),
+                auto_snakecase=getattr(schema, "auto_camelcase", False),
             )
 
         return document

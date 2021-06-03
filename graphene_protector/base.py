@@ -160,9 +160,11 @@ class ProtectorBackend(GraphQLCoreBackend):
             if not isinstance(definition, OperationDefinition):
                 continue
             operation_type = definition.operation
-
+            maintype = getattr(schema, f"get_{operation_type}_type")()
+            if hasattr(maintype, "graphene_type"):
+                maintype = maintype.graphene_type
             check_resource_usage(
-                getattr(schema, f"_{operation_type}"),
+                maintype,
                 definition.selection_set,
                 fragments,
                 self.get_default_limits(),

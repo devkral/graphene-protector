@@ -8,7 +8,8 @@ repository = "https://github.com/devkral/graphene-protector"
 
 [tool.poetry.dependencies]
 python = ">=3.6"
-graphene = "*"
+graphql-core = "*"
+graphene = { version = "*", optional=true }
 graphene-django = { version = "*", optional=true }
 
 [tool.poetry.dev-dependencies]

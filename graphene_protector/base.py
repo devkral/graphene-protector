@@ -107,6 +107,9 @@ def check_resource_usage(
         raise DepthLimitReached("Query is too deep")
     for field_orig in selection_set.selections:
         fieldname = field_orig.name.value
+        # ignore introspection queries
+        if fieldname.startswith("__"):
+            continue
         if auto_snakecase and not hasattr(schema, fieldname):
             fieldname = to_snake_case(fieldname)
         if isinstance(field_orig, FragmentSpread):

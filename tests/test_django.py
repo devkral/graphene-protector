@@ -6,6 +6,9 @@ from graphene_django.settings import graphene_settings
 from graphene_protector import Limits
 from graphene_protector.django import ProtectorBackend
 
+from graphql import print_schema
+from unittest.mock import patch
+
 
 backend = ProtectorBackend(limits=Limits(selections=100))
 
@@ -54,3 +57,10 @@ class TestDjango(TestCase):
 """
             result = schema.execute(query, backend=backend)
             self.assertFalse(result.errors)
+
+    @patch("graphene_protector.base.check_resource_usage")
+    def test_generate_scheme(self, mock):
+        graphene_settings.SCHEMA.introspect()
+        self.assertFalse(mock.called)
+        print_schema(graphene_settings.SCHEMA)
+        self.assertFalse(mock.called)

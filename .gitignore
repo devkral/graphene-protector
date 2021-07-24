@@ -1,6 +1,7 @@
 db.sqlite3
 celery.sqlite3
 .vscode
+schema.json
 
 cgihandler.cgi
 cgihandler.fcgi

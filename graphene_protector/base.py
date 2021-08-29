@@ -1,13 +1,52 @@
 from graphql.backend.core import GraphQLCoreBackend
-from graphql.language.ast import (
-    FragmentDefinition,
-    FragmentSpread,
-    OperationDefinition,
-)
+from graphql.execution import execute, ExecutionResult
+
+try:
+    from graphql.validation import (
+        validate,
+        specified_rules,
+        ValidationContext,
+        ValidationRule,
+    )
+
+    from graphql.language import (
+        DefinitionNode,
+        FragmentSpreadNode,
+        OperationDefinitionNode,
+    )
+
+    def get_schema(ctx: ValidationContext):
+        return ctx.schema
+
+    def get_ast(ctx: ValidationContext):
+        return ctx.document
+
+
+except ImportError:
+    from graphql.validation.validation import ValidationContext
+    from graphql.validation.rules.base import ValidationRule
+
+    from graphql.language.ast import (
+        Definition as DefinitionNode,
+        FragmentSpread as FragmentSpreadNode,
+        OperationDefinition as OperationDefinitionNode,
+    )
+
+    def get_schema(ctx: ValidationContext):
+        return ctx.get_schema()
+
+    def get_ast(ctx: ValidationContext):
+        return ctx.get_ast()
+
+
 import re
+from functools import partial
 
 from dataclasses import dataclass, fields, replace
-from typing import Union
+
+from typing import Any, Union, List
+from graphql.language.ast import Document
+from graphql.type.schema import GraphQLSchema
 
 
 # Adapted from this response in Stackoverflow
@@ -63,15 +102,6 @@ class ComplexityLimitReached(ResourceLimitReached):
     pass
 
 
-# stolen from https://github.com/manesioz/secure-graphene/blob/master/secure_graphene/depth.py  # noqa E501
-def get_fragments(definitions):
-    return {
-        definition.name.value: definition
-        for definition in definitions
-        if isinstance(definition, FragmentDefinition)
-    }
-
-
 def merge_limits(old_limits, new_limits):
     _limits = {}
     for field in fields(new_limits):
@@ -95,7 +125,7 @@ def limits_for_field(field, old_limits):
 def check_resource_usage(
     schema,
     selection_set,
-    fragments,
+    validation_context,
     limits,
     auto_snakecase=False,
     level=0,
@@ -103,6 +133,9 @@ def check_resource_usage(
     # level 0: starts on query level. Every query is level 1
     selections = 0
     max_depth = level
+    assert (
+        limits.depth is not MISSING
+    ), "missing should be already resolved here"
     if limits.depth and max_depth > limits.depth:
         raise DepthLimitReached("Query is too deep")
     for field_orig in selection_set.selections:
@@ -112,8 +145,8 @@ def check_resource_usage(
             continue
         if auto_snakecase and not hasattr(schema, fieldname):
             fieldname = to_snake_case(fieldname)
-        if isinstance(field_orig, FragmentSpread):
-            field = fragments.get(field_orig.name.value)
+        if isinstance(field_orig, FragmentSpreadNode):
+            field = validation_context.getFragment(field_orig.name.value)
         else:
             field = field_orig
         if field.selection_set:
@@ -122,7 +155,7 @@ def check_resource_usage(
             new_depth, local_selections = check_resource_usage(
                 schema_field.type,
                 field.selection_set,
-                fragments,
+                validation_context,
                 sub_limits,
                 auto_snakecase=auto_snakecase,
                 level=level + 1,
@@ -146,6 +179,55 @@ def check_resource_usage(
     return max_depth, selections
 
 
+class LimitsValidationRule(ValidationRule):
+    def __init__(
+        self,
+        validation_context: ValidationContext,
+        default_limits=None,
+    ):
+        schema = get_schema(validation_context)
+        document: List[DefinitionNode] = get_ast(validation_context)
+        for definition in document.definitions:
+            if not isinstance(definition, OperationDefinitionNode):
+                continue
+            operation_type = definition.operation
+            maintype = getattr(schema, f"get_{operation_type}_type")()
+            if hasattr(maintype, "graphene_type"):
+                maintype = maintype.graphene_type
+            check_resource_usage(
+                maintype,
+                definition.selection_set,
+                validation_context,
+                default_limits,
+                auto_snakecase=getattr(schema, "auto_camelcase", False),
+            )
+
+
+def execute_and_validate(
+    schema,  # type: GraphQLSchema
+    document_ast,  # type: Document
+    *args,  # type: Any
+    default_limits=None,
+    **kwargs,  # type: Any
+):
+    do_validation = kwargs.get("validate", True)
+    if do_validation:
+        if callable(default_limits):
+            default_limits = default_limits()
+        validation_errors = validate(
+            schema,
+            document_ast,
+            [
+                *specified_rules,
+                partial(LimitsValidationRule, default_limits=default_limits),
+            ],
+        )
+        if validation_errors:
+            return ExecutionResult(errors=validation_errors, invalid=True)
+
+    return execute(schema, document_ast, *args, **kwargs)
+
+
 class ProtectorBackend(GraphQLCoreBackend):
     default_limits = None
 
@@ -155,25 +237,13 @@ class ProtectorBackend(GraphQLCoreBackend):
 
     def document_from_string(self, schema, document_string):
         document = super().document_from_string(schema, document_string)
-        ast = document.document_ast
-        # fragments are like a dictionary of views
-        fragments = get_fragments(ast.definitions)
-        for definition in ast.definitions:
-            # only queries and mutations
-            if not isinstance(definition, OperationDefinition):
-                continue
-            operation_type = definition.operation
-            maintype = getattr(schema, f"get_{operation_type}_type")()
-            if hasattr(maintype, "graphene_type"):
-                maintype = maintype.graphene_type
-            check_resource_usage(
-                maintype,
-                definition.selection_set,
-                fragments,
-                self.get_default_limits(),
-                auto_snakecase=getattr(schema, "auto_camelcase", False),
-            )
-
+        document.execute = partial(
+            execute_and_validate,
+            schema,
+            document.document_ast,
+            default_limits=self.get_default_limits,
+            **self.execute_params,
+        )
         return document
 
     def get_default_limits(self):

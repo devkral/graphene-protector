@@ -16,7 +16,10 @@ try:
     )
 
     def get_schema(ctx: ValidationContext):
-        ctx.schema
+        return ctx.schema
+
+    def get_ast(ctx: ValidationContext):
+        return ctx.document
 
 
 except ImportError:
@@ -30,7 +33,10 @@ except ImportError:
     )
 
     def get_schema(ctx: ValidationContext):
-        ctx.get_schema()
+        return ctx.get_schema()
+
+    def get_ast(ctx: ValidationContext):
+        return ctx.get_ast()
 
 
 import re
@@ -127,6 +133,9 @@ def check_resource_usage(
     # level 0: starts on query level. Every query is level 1
     selections = 0
     max_depth = level
+    assert (
+        limits.depth is not MISSING
+    ), "missing should be already resolved here"
     if limits.depth and max_depth > limits.depth:
         raise DepthLimitReached("Query is too deep")
     for field_orig in selection_set.selections:
@@ -172,11 +181,12 @@ def check_resource_usage(
 
 class LimitsValidationRule(ValidationRule):
     def __init__(
+        self,
         validation_context: ValidationContext,
         default_limits=None,
     ):
         schema = get_schema(validation_context)
-        document: List[DefinitionNode] = validation_context.document
+        document: List[DefinitionNode] = get_ast(validation_context)
         for definition in document.definitions:
             if not isinstance(definition, OperationDefinitionNode):
                 continue
@@ -202,12 +212,14 @@ def execute_and_validate(
 ):
     do_validation = kwargs.get("validate", True)
     if do_validation:
+        if callable(default_limits):
+            default_limits = default_limits()
         validation_errors = validate(
             schema,
             document_ast,
             [
                 *specified_rules,
-                LimitsValidationRule(default_limits=default_limits),
+                partial(LimitsValidationRule, default_limits=default_limits),
             ],
         )
         if validation_errors:
@@ -229,7 +241,7 @@ class ProtectorBackend(GraphQLCoreBackend):
             execute_and_validate,
             schema,
             document.document_ast,
-            default_limits=self.default_limits,
+            default_limits=self.get_default_limits,
             **self.execute_params,
         )
         return document

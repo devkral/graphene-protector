@@ -1,7 +1,5 @@
 from django.conf import settings
 
-import graphene
-
 from . import base
 
 
@@ -11,7 +9,7 @@ def _get_default_limit_from_settings(name):
     return base.MISSING
 
 
-class ProtectorBackend(base.ProtectorBackend):
+class Schema(base.Schema):
     def get_default_limits(self):
         return base.merge_limits(
             base.merge_limits(
@@ -30,13 +28,3 @@ class ProtectorBackend(base.ProtectorBackend):
             ),
             self.default_limits,
         )
-
-
-class Schema(graphene.Schema):
-    def __init__(self, *args, **kwargs):
-        self.backend = kwargs.pop("backend", ProtectorBackend())
-        super().__init__(*args, **kwargs)
-
-    def execute(self, *args, **kwargs):
-        kwargs.setdefault("backend", self.backend)
-        return super().execute(*args, **kwargs)

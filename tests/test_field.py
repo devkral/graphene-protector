@@ -3,7 +3,7 @@ __package__ = "tests"
 import unittest
 import graphene
 
-from graphene_protector import Limits, ProtectorBackend
+from graphene_protector import Limits, Schema as ProtectorSchema
 from .base import Person
 
 
@@ -53,10 +53,9 @@ class Query(graphene.ObjectType):
         return Person4(id=400, depth=10, age=34)
 
 
-backend = ProtectorBackend(
-    limits=Limits(depth=3, selections=None, complexity=None)
+schema = ProtectorSchema(
+    query=Query, limits=Limits(depth=3, selections=None, complexity=None)
 )
-schema = graphene.Schema(query=Query)
 
 
 class TestField(unittest.TestCase):
@@ -71,7 +70,7 @@ class TestField(unittest.TestCase):
       }
     }
 """
-            result = schema.execute(query, backend=backend)
+            result = schema.execute(query)
             self.assertFalse(result.errors)
 
         with self.subTest("rejected"):
@@ -86,7 +85,7 @@ class TestField(unittest.TestCase):
       }
     }
 """
-            result = schema.execute(query, backend=backend)
+            result = schema.execute(query)
             self.assertTrue(result.errors)
 
     def test_unset_directly(self):
@@ -107,7 +106,7 @@ class TestField(unittest.TestCase):
       }
     }
 """
-        result = schema.execute(query, backend=backend)
+        result = schema.execute(query)
         self.assertFalse(result.errors)
 
     def test_unset_hierachy(self):
@@ -128,7 +127,7 @@ class TestField(unittest.TestCase):
       }
     }
 """
-        result = schema.execute(query, backend=backend)
+        result = schema.execute(query)
         self.assertFalse(result.errors)
 
     def test_set_hierachy(self):
@@ -144,7 +143,7 @@ class TestField(unittest.TestCase):
       }
     }
 """
-            result = schema.execute(query, backend=backend)
+            result = schema.execute(query)
             self.assertFalse(result.errors)
 
         with self.subTest("rejected"):
@@ -161,5 +160,5 @@ class TestField(unittest.TestCase):
       }
     }
 """
-            result = schema.execute(query, backend=backend)
+            result = schema.execute(query)
             self.assertTrue(result.errors)

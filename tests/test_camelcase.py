@@ -3,7 +3,7 @@ __package__ = "tests"
 import unittest
 import graphene
 
-from graphene_protector import Limits, ProtectorBackend
+from graphene_protector import Limits, Schema as ProtectorSchema
 
 
 class Person(graphene.ObjectType):
@@ -47,10 +47,11 @@ class Query(graphene.ObjectType):
         return Person3(id=300, depth=10, age=34)
 
 
-backend = ProtectorBackend(
-    limits=Limits(depth=3, selections=None, complexity=None)
+schema = ProtectorSchema(
+    query=Query,
+    auto_camelcase=True,
+    limits=Limits(depth=3, selections=None, complexity=None),
 )
-schema = graphene.Schema(query=Query, auto_camelcase=True)
 
 
 class TestField(unittest.TestCase):
@@ -65,7 +66,7 @@ class TestField(unittest.TestCase):
       }
     }
 """
-            result = schema.execute(query, backend=backend)
+            result = schema.execute(query)
             self.assertFalse(result.errors)
 
         with self.subTest("rejected"):
@@ -80,7 +81,7 @@ class TestField(unittest.TestCase):
       }
     }
 """
-            result = schema.execute(query, backend=backend)
+            result = schema.execute(query)
             self.assertTrue(result.errors)
 
     def test_unset_directly(self):
@@ -101,7 +102,7 @@ class TestField(unittest.TestCase):
       }
     }
 """
-        result = schema.execute(query, backend=backend)
+        result = schema.execute(query)
         self.assertFalse(result.errors)
 
     def test_unset_hierachy(self):
@@ -122,5 +123,5 @@ class TestField(unittest.TestCase):
       }
     }
 """
-        result = schema.execute(query, backend=backend)
+        result = schema.execute(query)
         self.assertFalse(result.errors)

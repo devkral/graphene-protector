@@ -4,17 +4,17 @@ from django.conf import settings
 from graphene_django.settings import graphene_settings
 
 from graphene_protector import Limits
-from graphene_protector.django import ProtectorBackend
+from graphene_protector.django import Schema as ProtectorSchema
 
 from graphql import print_schema
 
 
-backend = ProtectorBackend(limits=Limits(selections=100))
+schema = ProtectorSchema(limits=Limits(selections=100))
 
 
 class TestDjango(TestCase):
     def test_defaults(self):
-        limits = backend.get_default_limits()
+        limits = schema.get_default_limits()
         self.assertEqual(settings.GRAPHENE_PROTECTOR_DEPTH_LIMIT, limits.depth)
         self.assertNotEqual(
             settings.GRAPHENE_PROTECTOR_SELECTIONS_LIMIT, limits.selections
@@ -37,7 +37,7 @@ class TestDjango(TestCase):
       }
     }
 """
-            result = schema.execute(query, backend=backend)
+            result = schema.execute(query)
             self.assertTrue(result.errors)
 
         with self.subTest("success"):
@@ -54,7 +54,7 @@ class TestDjango(TestCase):
       }
     }
 """
-            result = schema.execute(query, backend=backend)
+            result = schema.execute(query)
             self.assertFalse(result.errors)
 
     def test_generate_scheme(self):

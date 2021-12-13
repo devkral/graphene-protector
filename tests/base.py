@@ -1,5 +1,5 @@
 import graphene
-from graphene_protector import Limits, ProtectorBackend
+from graphene_protector import Limits, Schema as ProtectorSchema
 
 
 class Person(graphene.ObjectType):
@@ -27,8 +27,7 @@ if __name__ == "__main__":
         def resolve_person2(root, info):
             return Person(id=200, depth=10, age=34)
 
-    backend = ProtectorBackend()
-    schema = graphene.Schema(query=Query2)
+    schema = ProtectorSchema(query=Query2)
     query = """
         query something{
         person1 {
@@ -45,6 +44,6 @@ if __name__ == "__main__":
         }
         }
     """
-    result = schema.execute(query, backend=backend)
+    result = schema.execute(query)
     print(result)
     print(result.data["person1"])

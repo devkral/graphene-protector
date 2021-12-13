@@ -1,15 +1,25 @@
-from graphql.backend.core import GraphQLCoreBackend
-from graphql.execution import execute, ExecutionResult
+from graphql.execution import ExecutionResult
+from graphene.types import Schema as GrapheneSchema
+from graphql.error import GraphQLError
+
+
+import re
+from functools import wraps
+
+from dataclasses import dataclass, fields, replace
+
+from typing import Union, List
+
 
 try:
     from graphql.validation import (
         validate,
-        specified_rules,
         ValidationContext,
         ValidationRule,
     )
 
     from graphql.language import (
+        parse,
         DefinitionNode,
         FragmentSpreadNode,
         OperationDefinitionNode,
@@ -21,11 +31,11 @@ try:
     def get_ast(ctx: ValidationContext):
         return ctx.document
 
-
 except ImportError:
-    from graphql.validation.validation import ValidationContext
+    from graphql.validation.validation import ValidationContext, validate
     from graphql.validation.rules.base import ValidationRule
 
+    from graphql.language.parser import parse
     from graphql.language.ast import (
         Definition as DefinitionNode,
         FragmentSpread as FragmentSpreadNode,
@@ -37,16 +47,6 @@ except ImportError:
 
     def get_ast(ctx: ValidationContext):
         return ctx.get_ast()
-
-
-import re
-from functools import partial
-
-from dataclasses import dataclass, fields, replace
-
-from typing import Any, Union, List
-from graphql.language.ast import Document
-from graphql.type.schema import GraphQLSchema
 
 
 # Adapted from this response in Stackoverflow
@@ -203,51 +203,76 @@ class LimitsValidationRule(ValidationRule):
             )
 
 
-def execute_and_validate(
-    schema,  # type: GraphQLSchema
-    document_ast,  # type: Document
-    *args,  # type: Any
-    default_limits=None,
-    **kwargs,  # type: Any
-):
-    do_validation = kwargs.get("validate", True)
-    if do_validation:
-        if callable(default_limits):
-            default_limits = default_limits()
-        validation_errors = validate(
-            schema,
-            document_ast,
-            [
-                *specified_rules,
-                partial(LimitsValidationRule, default_limits=default_limits),
-            ],
-        )
-        if validation_errors:
-            return ExecutionResult(errors=validation_errors, invalid=True)
+def decorate_limits(fn):
+    @wraps(fn)
+    def wrapper(superself, query, *args, check_limits=True, **kwargs):
+        if check_limits:
+            try:
+                document_ast = parse(query)
+            except GraphQLError as error:
+                return ExecutionResult(data=None, errors=[error])
 
-    return execute(schema, document_ast, *args, **kwargs)
+            class TempRule(LimitsValidationRule):
+                def __init__(self, validation_context):
+                    super().__init__(
+                        validation_context, superself.get_default_limits()
+                    )
+
+            validation_errors = validate(
+                superself.graphql_schema,
+                document_ast,
+                [TempRule],
+            )
+            if validation_errors:
+                return ExecutionResult(errors=validation_errors, invalid=True)
+        return fn(superself, query, *args, **kwargs)
+
+    return wrapper
 
 
-class ProtectorBackend(GraphQLCoreBackend):
+def decorate_limits_async(fn):
+    @wraps(fn)
+    async def wrapper(superself, query, *args, check_limits=True, **kwargs):
+        if check_limits:
+            try:
+                document_ast = parse(query)
+            except GraphQLError as error:
+                return ExecutionResult(data=None, errors=[error])
+
+            class TempRule(LimitsValidationRule):
+                def __init__(self, validation_context):
+                    super().__init__(
+                        validation_context, superself.get_default_limits()
+                    )
+
+            validation_errors = validate(
+                superself.graphql_schema,
+                document_ast,
+                [TempRule],
+            )
+            if validation_errors:
+                return ExecutionResult(errors=validation_errors, invalid=True)
+        return await fn(superself, query, *args, **kwargs)
+
+    return wrapper
+
+
+class Schema(GrapheneSchema):
     default_limits = None
 
     def __init__(self, *args, limits=Limits(), **kwargs):
-        super().__init__(*args, **kwargs)
         self.default_limits = limits
-
-    def document_from_string(self, schema, document_string):
-        document = super().document_from_string(schema, document_string)
-        document.execute = partial(
-            execute_and_validate,
-            schema,
-            document.document_ast,
-            default_limits=self.get_default_limits,
-            **self.execute_params,
-        )
-        return document
+        super().__init__(*args, **kwargs)
 
     def get_default_limits(self):
         return merge_limits(
             DEFAULT_LIMITS,
             self.default_limits,
         )
+
+    execute = decorate_limits(GrapheneSchema.execute)
+    if hasattr(GrapheneSchema, "execute_async"):
+        execute_async = decorate_limits_async(GrapheneSchema.execute_async)
+
+    if hasattr(GrapheneSchema, "subscribe"):
+        subscribe = decorate_limits_async(GrapheneSchema.subscribe)

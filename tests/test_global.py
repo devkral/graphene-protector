@@ -4,7 +4,7 @@ import unittest
 import graphene
 from dataclasses import fields
 
-from graphene_protector import Limits, ProtectorBackend
+from graphene_protector import Limits, Schema as ProtectorSchema
 from .base import Person
 
 

@@ -1,5 +1,6 @@
 import graphene
-from graphene_protector import Limits, Schema as ProtectorSchema
+from graphene_protector import Limits
+from graphene_protector.graphene import Schema as ProtectorSchema
 
 
 class Person(graphene.ObjectType):

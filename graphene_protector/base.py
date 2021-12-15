@@ -1,5 +1,4 @@
-from graphql.execution import ExecutionResult
-from graphene.types import Schema as GrapheneSchema
+from graphql.execution import ExecutionResult as GraphqlExecutionResult
 from graphql.error import GraphQLError
 
 
@@ -25,11 +24,17 @@ try:
         OperationDefinitionNode,
     )
 
+    ExecutionResult = GraphqlExecutionResult
+
     def get_schema(ctx: ValidationContext):
         return ctx.schema
 
     def get_ast(ctx: ValidationContext):
         return ctx.document
+
+    def get_optype(schema, definition):
+        operation_type = definition.operation.name.title()
+        return schema.get_type(operation_type)
 
 except ImportError:
     from graphql.validation.validation import ValidationContext, validate
@@ -42,11 +47,24 @@ except ImportError:
         OperationDefinition as OperationDefinitionNode,
     )
 
+    class ExecutionResult(GraphqlExecutionResult):
+        def __init__(self, data=None, errors=None, extensions=None):
+            super().__init__(
+                data=data,
+                errors=errors,
+                extensions=extensions,
+                invalid=bool(errors),
+            )
+
     def get_schema(ctx: ValidationContext):
         return ctx.get_schema()
 
     def get_ast(ctx: ValidationContext):
         return ctx.get_ast()
+
+    def get_optype(schema, definition):
+        operation_type = definition.operation.title()
+        return schema.get_type(operation_type)
 
 
 # Adapted from this response in Stackoverflow
@@ -86,7 +104,7 @@ _missing_limits = Limits()
 DEFAULT_LIMITS = Limits(depth=20, selections=None, complexity=100)
 
 
-class ResourceLimitReached(Exception):
+class ResourceLimitReached(GraphQLError):
     pass
 
 
@@ -124,9 +142,10 @@ def limits_for_field(field, old_limits):
 
 def check_resource_usage(
     schema,
-    selection_set,
+    node,
     validation_context,
     limits,
+    on_error,
     auto_snakecase=False,
     level=0,
 ):
@@ -137,8 +156,12 @@ def check_resource_usage(
         limits.depth is not MISSING
     ), "missing should be already resolved here"
     if limits.depth and max_depth > limits.depth:
-        raise DepthLimitReached("Query is too deep")
-    for field_orig in selection_set.selections:
+        on_error(
+            DepthLimitReached(
+                "Query is too deep",
+            )
+        )
+    for field_orig in node.selection_set.selections:
         fieldname = field_orig.name.value
         # ignore introspection queries
         if fieldname.startswith("__"):
@@ -154,9 +177,10 @@ def check_resource_usage(
             sub_limits = limits_for_field(schema_field, limits)
             new_depth, local_selections = check_resource_usage(
                 schema_field.type,
-                field.selection_set,
+                field,
                 validation_context,
                 sub_limits,
+                on_error=on_error,
                 auto_snakecase=auto_snakecase,
                 level=level + 1,
             )
@@ -166,7 +190,7 @@ def check_resource_usage(
                 and (new_depth - level) * local_selections
                 > sub_limits.complexity
             ):
-                raise ComplexityLimitReached("Query is too complex")
+                on_error(ComplexityLimitReached("Query is too complex", node))
             # ignore selection_set fields because we have depth for that
             selections += local_selections
             if new_depth > max_depth:
@@ -175,32 +199,44 @@ def check_resource_usage(
             selections += 1
 
         if limits.selections and selections > limits.selections:
-            raise SelectionsLimitReached("Query selects too much")
+            on_error(SelectionsLimitReached("Query selects too much", node))
     return max_depth, selections
 
 
 class LimitsValidationRule(ValidationRule):
-    def __init__(
-        self,
-        validation_context: ValidationContext,
-        default_limits=None,
-    ):
-        schema = get_schema(validation_context)
-        document: List[DefinitionNode] = get_ast(validation_context)
+    default_limits = DEFAULT_LIMITS
+    # TODO: find out if auto_camelcase is set
+    # But no priority as this code works also
+    auto_snakecase = True
+
+    def enter(self, node, key, parent, path, ancestors):
+        if parent is not None:
+            return None
+        schema = get_schema(self.context)
+        default_limits = getattr(
+            schema, "get_default_limits", lambda: self.default_limits
+        )()
+        document: List[DefinitionNode] = get_ast(self.context)
         for definition in document.definitions:
             if not isinstance(definition, OperationDefinitionNode):
                 continue
-            operation_type = definition.operation
-            maintype = getattr(schema, f"get_{operation_type}_type")()
+            maintype = get_optype(schema, definition)
             if hasattr(maintype, "graphene_type"):
                 maintype = maintype.graphene_type
+            #
             check_resource_usage(
                 maintype,
-                definition.selection_set,
-                validation_context,
+                definition,
+                self.context,
                 default_limits,
-                auto_snakecase=getattr(schema, "auto_camelcase", False),
+                self.report_error,
+                auto_snakecase=self.auto_snakecase,
             )
+
+    if not hasattr(ValidationRule, "report_error"):
+
+        def report_error(self, error):
+            self.context.report_error(error)
 
 
 def decorate_limits(fn):
@@ -212,67 +248,48 @@ def decorate_limits(fn):
             except GraphQLError as error:
                 return ExecutionResult(data=None, errors=[error])
 
-            class TempRule(LimitsValidationRule):
-                def __init__(self, validation_context):
-                    super().__init__(
-                        validation_context, superself.get_default_limits()
-                    )
+            class TempLimitsValidationRule(LimitsValidationRule):
+                default_limits = getattr(
+                    superself,
+                    "get_default_limits",
+                    lambda: DEFAULT_LIMITS,
+                )()
 
             validation_errors = validate(
-                superself.graphql_schema,
+                getattr(superself, "graphql_schema", superself),
                 document_ast,
-                [TempRule],
+                [TempLimitsValidationRule],
             )
             if validation_errors:
-                return ExecutionResult(errors=validation_errors, invalid=True)
+                return ExecutionResult(errors=validation_errors)
         return fn(superself, query, *args, **kwargs)
 
     return wrapper
 
 
 def decorate_limits_async(fn):
+    decorated = decorate_limits(fn)
+
     @wraps(fn)
-    async def wrapper(superself, query, *args, check_limits=True, **kwargs):
-        if check_limits:
-            try:
-                document_ast = parse(query)
-            except GraphQLError as error:
-                return ExecutionResult(data=None, errors=[error])
-
-            class TempRule(LimitsValidationRule):
-                def __init__(self, validation_context):
-                    super().__init__(
-                        validation_context, superself.get_default_limits()
-                    )
-
-            validation_errors = validate(
-                superself.graphql_schema,
-                document_ast,
-                [TempRule],
-            )
-            if validation_errors:
-                return ExecutionResult(errors=validation_errors, invalid=True)
-        return await fn(superself, query, *args, **kwargs)
+    async def wrapper(superself, *args, **kwargs):
+        return await decorated(superself, *args, **kwargs)
 
     return wrapper
 
 
-class Schema(GrapheneSchema):
+class SchemaMixin:
     default_limits = None
 
-    def __init__(self, *args, limits=Limits(), **kwargs):
-        self.default_limits = limits
-        super().__init__(*args, **kwargs)
+    def __init_subclass__(cls, **kwargs):
+        if hasattr(cls, "execute"):
+            cls.execute = decorate_limits(cls.execute)
+        if hasattr(cls, "execute_async"):
+            cls.execute_async = decorate_limits_async(cls.execute_async)
+        if hasattr(cls, "subscribe"):
+            cls.subscribe = decorate_limits_async(cls.subscribe)
 
     def get_default_limits(self):
         return merge_limits(
             DEFAULT_LIMITS,
             self.default_limits,
         )
-
-    execute = decorate_limits(GrapheneSchema.execute)
-    if hasattr(GrapheneSchema, "execute_async"):
-        execute_async = decorate_limits_async(GrapheneSchema.execute_async)
-
-    if hasattr(GrapheneSchema, "subscribe"):
-        subscribe = decorate_limits_async(GrapheneSchema.subscribe)

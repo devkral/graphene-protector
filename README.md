@@ -44,49 +44,39 @@ GRAPHENE = {
 manual way (note: import from django for including defaults from settings)
 
 ```python 3
-from graphene import Schema
-from graphene_protector.django import ProtectorBackend
-backend = ProtectorBackend()
-schema = graphene.Schema(query=Query)
-result = schema.execute(query_string, backend=backend)
+from graphene_protector.django import Schema
+schema = Schema(query=Query)
+result = schema.execute(query_string)
 
 ```
 
-manual way with custom default Limits
+manual way with custom default Limits aand operation specific limits
 
 ```python 3
-from graphene import Schema
 from graphene_protector import Limits
-from graphene_protector.django import ProtectorBackend
-backend = ProtectorBackend(limits=Limits())
-schema = graphene.Schema(query=Query)
-result = schema.execute(query_string, backend=backend)
+from graphene_protector.django import Schema
+schema = graphene.Schema(query=Query, limits=Limits())
+result = schema.execute(
+    query_string, backend=backend, limits=Limits(complexity=1)
+)
 
 ```
 
-## Other/Manually
+## Graphene
 
 limits keyword with Limits object is supported.
 
 ```python 3
-# note: Limits import from graphene_protector not from django
-from graphene_protector import ProtectorBackend, Limits
-backend = ProtectorBackend(limits=Limits(depth=20, selections=None, complexity=100))
-schema = graphene.Schema(query=Query)
-result = schema.execute(query_string, backend=backend)
-
-```
-
-you can also set this backend as global default via
-```python 3
-from graphql import set_default_backend
-# note: Limits import from graphene_protector not from django but this would be possible
-from graphene_protector import ProtectorBackend, Limits
-set_default_backend(ProtectorBackend(limits=Limits(depth=20, selections=None, complexity=100)))
-schema = graphene.Schema(query=Query)
+from graphene_protector.base import Limits
+from graphene_protector.graphene import Schema
+backend = Schema(query=Query, limits=Limits(depth=20, selections=None, complexity=100))
 result = schema.execute(query_string)
-
 ```
+
+## pure graphql
+
+TODO
+
 
 ## Limits
 

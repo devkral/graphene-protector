@@ -1,6 +1,6 @@
 from django.conf import settings
 
-from . import base
+from . import graphene, base
 
 
 def _get_default_limit_from_settings(name):
@@ -9,7 +9,7 @@ def _get_default_limit_from_settings(name):
     return base.MISSING
 
 
-class Schema(base.Schema):
+class Schema(graphene.Schema):
     def get_default_limits(self):
         return base.merge_limits(
             base.merge_limits(

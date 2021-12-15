@@ -1,6 +1,7 @@
 import graphene
 
 from graphene_protector import Limits
+from graphene_protector.django import Schema as ProtectorSchema
 from ..base import Person
 
 
@@ -16,4 +17,4 @@ class Query(graphene.ObjectType):
         return Person(id=200, depth=10, age=34)
 
 
-schema = graphene.Schema(query=Query)
+schema = ProtectorSchema(query=Query)

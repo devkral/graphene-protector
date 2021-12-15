@@ -8,8 +8,9 @@ from graphene_protector.django import Schema as ProtectorSchema
 
 from graphql import print_schema
 
+from .django.schema import Query
 
-schema = ProtectorSchema(limits=Limits(selections=100))
+schema = ProtectorSchema(query=Query, limits=Limits(selections=100))
 
 
 class TestDjango(TestCase):
@@ -60,4 +61,7 @@ class TestDjango(TestCase):
     def test_generate_scheme(self):
         schema = graphene_settings.SCHEMA
         schema.introspect()
-        print_schema(schema)
+        # graphene < 3: schema is graphql_schema
+        print_schema(getattr(schema, "graphql_schema", schema))
+        # doesn't work
+        # print_schema(schema)

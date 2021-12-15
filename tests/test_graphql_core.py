@@ -2,19 +2,23 @@ __package__ = "tests"
 
 import unittest
 
-from graphene_protector import Limits, Schema as ProtectorSchema
+from graphql import validate, parse
+from graphql.type import GraphQLSchema
+from graphene_protector import Limits, SchemaMixin, ValidationRule
 
-#
-from graphene.types import Schema as GrapheneSchema
-from .graphql.schema import schema
+
+from .graphql.schema import Query
+
+
+class Schema(GraphQLSchema, SchemaMixin):
+    default_limits = Limits(depth=2, selections=None, complexity=None)
+    auto_camelcase = False
 
 
 class TestCore(unittest.TestCase):
     def test_simple(self):
-        s = ProtectorSchema(
-            limits=Limits(depth=2, selections=None, complexity=None)
+        schema = Schema(
+            query=Query,
         )
-        self.assertIsInstance(s, GrapheneSchema)
-        result = s.execute(schema, "{ hello }")
-        self.assertFalse(result.errors)
-        self.assertDictEqual(result.data, {"hello": "World"})
+        query_ast = parse("{ hello }")
+        self.assertFalse(validate(schema, query_ast, [ValidationRule]))

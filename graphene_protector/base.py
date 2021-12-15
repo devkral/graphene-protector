@@ -242,24 +242,29 @@ _rules = [LimitsValidationRule]
 
 def decorate_limits(fn):
     @wraps(fn)
-    def wrapper(superself, query, *args, check_limits=True, **kwargs):
-        if check_limits:
+    def wrapper(superself, *args, check_limits=True, **kwargs):
+        if check_limits and (kwargs.get("query") or len(args)):
             try:
-                document_ast = parse(query)
-            except GraphQLError as error:
-                return ExecutionResult(data=None, errors=[error])
+                query = kwargs.get("query", args[0])
+            except IndexError:
+                pass
+            if query:
+                try:
+                    document_ast = parse(query)
+                except GraphQLError as error:
+                    return ExecutionResult(data=None, errors=[error])
 
-            schema = getattr(superself, "graphql_schema", superself)
-            schema.get_default_limits = superself.get_default_limits
+                schema = getattr(superself, "graphql_schema", superself)
+                schema.get_default_limits = superself.get_default_limits
 
-            validation_errors = validate(
-                getattr(superself, "graphql_schema", superself),
-                document_ast,
-                _rules,
-            )
-            if validation_errors:
-                return ExecutionResult(errors=validation_errors)
-        return fn(superself, query, *args, **kwargs)
+                validation_errors = validate(
+                    getattr(superself, "graphql_schema", superself),
+                    document_ast,
+                    _rules,
+                )
+                if validation_errors:
+                    return ExecutionResult(errors=validation_errors)
+        return fn(superself, *args, **kwargs)
 
     return wrapper
 

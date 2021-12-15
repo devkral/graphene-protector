@@ -72,6 +72,23 @@ class TestGlobal(unittest.TestCase):
             result = schema.execute(query)
             self.assertTrue(result.errors)
 
+        with self.subTest("ignored limits"):
+            query = """
+    query something{
+      person {
+        id
+        age
+        child {
+            child {
+                age
+            }
+        }
+      }
+    }
+"""
+            result = schema.execute(query, check_limits=False)
+            self.assertFalse(result.errors)
+
     def test_selections(self):
         schema = ProtectorSchema(
             query=Query,

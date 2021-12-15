@@ -50,14 +50,14 @@ result = schema.execute(query_string)
 
 ```
 
-manual way with custom default Limits aand operation specific limits
+manual way with custom default Limits
 
 ```python 3
 from graphene_protector import Limits
 from graphene_protector.django import Schema
-schema = graphene.Schema(query=Query, limits=Limits())
+schema = graphene.Schema(query=Query, limits=Limits(complexity=None))
 result = schema.execute(
-    query_string, backend=backend, limits=Limits(complexity=1)
+    query_string
 )
 
 ```
@@ -67,15 +67,67 @@ result = schema.execute(
 limits keyword with Limits object is supported.
 
 ```python 3
-from graphene_protector.base import Limits
+from graphene_protector import Limits
 from graphene_protector.graphene import Schema
-backend = Schema(query=Query, limits=Limits(depth=20, selections=None, complexity=100))
+schema = Schema(query=Query, limits=Limits(depth=20, selections=None, complexity=100))
 result = schema.execute(query_string)
 ```
 
+
 ## pure graphql
 
-TODO
+```python 3
+
+from graphene_protector import LimitsValidationRule
+from graphql.type.schema import Schema
+schema = Schema(
+    query=Query,
+)
+query_ast = parse("{ hello }")
+self.assertFalse(validate(schema, query_ast, [LimitsValidationRule]))
+
+```
+
+or with custom defaults
+
+
+```python 3
+
+from graphene_protector import Limits, LimitsValidationRule
+from graphql.type.schema import Schema
+
+class CustomLimitsValidationRule(LimitsValidationRule):
+    default_limits = Limits(depth=20, selections=None, complexity=100)
+
+schema = Schema(
+    query=Query,
+)
+query_ast = parse("{ hello }")
+self.assertFalse(validate(schema, query_ast, [LimitsValidationRule]))
+
+```
+
+
+or with custom defaults via Mixin
+
+
+```python 3
+
+from graphene_protector import Limits, SchemaMixin, LimitsValidationRule
+from graphql.type.schema import Schema
+
+class CustomSchema(Schema):
+    default_limits = Limits(depth=20, selections=None, complexity=100)
+
+schema = Schema(
+    query=Query,
+)
+query_ast = parse("{ hello }")
+self.assertFalse(validate(schema, query_ast, [LimitsValidationRule]))
+
+```
+
+
 
 
 ## Limits
@@ -97,6 +149,21 @@ Sometimes single fields should have different limits:
 ```
 
 Limits are inherited for unspecified parameters
+
+
+## one-time disable limit checks
+
+to disable checks for one operation use check_limits=False (works for:
+execute, execute_async (if available), subscribe (if available)):
+
+
+```python 3
+from graphene_protector import Limits
+from graphene_protector.graphene import Schema
+schema = Schema(query=Query, limits=Limits(depth=20, selections=None, complexity=100))
+result = schema.execute(query_string, check_limits=False)
+```
+
 
 # Development
 

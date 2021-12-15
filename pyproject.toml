@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "graphene-protector"
-version = "0.5.0"
+version = "0.5.1"
 description = "Protects graphene against malicious queries"
 authors = ["alex <devkral@web.de>"]
 license = "MIT"

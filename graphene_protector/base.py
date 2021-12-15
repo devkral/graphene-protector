@@ -1,28 +1,19 @@
-from graphql.execution import ExecutionResult as GraphqlExecutionResult
-from graphql.error import GraphQLError
-
-
 import re
-from functools import wraps
-
 from dataclasses import dataclass, fields, replace
+from functools import wraps
+from typing import List, Union
 
-from typing import Union, List
-
+from graphql.error import GraphQLError
+from graphql.execution import ExecutionResult as GraphqlExecutionResult
 
 try:
-    from graphql.validation import (
-        validate,
-        ValidationContext,
-        ValidationRule,
-    )
-
     from graphql.language import (
-        parse,
         DefinitionNode,
         FragmentSpreadNode,
         OperationDefinitionNode,
+        parse,
     )
+    from graphql.validation import ValidationContext, ValidationRule, validate
 
     ExecutionResult = GraphqlExecutionResult
 
@@ -37,15 +28,14 @@ try:
         return schema.get_type(operation_type)
 
 except ImportError:
-    from graphql.validation.validation import ValidationContext, validate
-    from graphql.validation.rules.base import ValidationRule
-
-    from graphql.language.parser import parse
     from graphql.language.ast import (
         Definition as DefinitionNode,
         FragmentSpread as FragmentSpreadNode,
         OperationDefinition as OperationDefinitionNode,
     )
+    from graphql.language.parser import parse
+    from graphql.validation.rules.base import ValidationRule
+    from graphql.validation.validation import ValidationContext, validate
 
     class ExecutionResult(GraphqlExecutionResult):
         def __init__(self, data=None, errors=None, extensions=None):
@@ -204,18 +194,26 @@ def check_resource_usage(
 
 
 class LimitsValidationRule(ValidationRule):
-    default_limits = DEFAULT_LIMITS
+    default_limits = None
     # TODO: find out if auto_camelcase is set
     # But no priority as this code works also
     auto_snakecase = True
+
+    def __init__(self, context):
+        super().__init__(context)
+        schema = get_schema(self.context)
+        # if not set use schema to get defaults or set in case no limits
+        # are found to DEFAULT:LIMITS
+        if not self.default_limits:
+            self.default_limits = getattr(
+                schema, "get_default_limits", lambda: DEFAULT_LIMITS
+            )()
 
     def enter(self, node, key, parent, path, ancestors):
         if parent is not None:
             return None
         schema = get_schema(self.context)
-        default_limits = getattr(
-            schema, "get_default_limits", lambda: self.default_limits
-        )()
+
         document: List[DefinitionNode] = get_ast(self.context)
         for definition in document.definitions:
             if not isinstance(definition, OperationDefinitionNode):
@@ -228,7 +226,7 @@ class LimitsValidationRule(ValidationRule):
                 maintype,
                 definition,
                 self.context,
-                default_limits,
+                self.default_limits,
                 self.report_error,
                 auto_snakecase=self.auto_snakecase,
             )
@@ -237,6 +235,9 @@ class LimitsValidationRule(ValidationRule):
 
         def report_error(self, error):
             self.context.report_error(error)
+
+
+_rules = [LimitsValidationRule]
 
 
 def decorate_limits(fn):
@@ -248,17 +249,13 @@ def decorate_limits(fn):
             except GraphQLError as error:
                 return ExecutionResult(data=None, errors=[error])
 
-            class TempLimitsValidationRule(LimitsValidationRule):
-                default_limits = getattr(
-                    superself,
-                    "get_default_limits",
-                    lambda: DEFAULT_LIMITS,
-                )()
+            schema = getattr(superself, "graphql_schema", superself)
+            schema.get_default_limits = superself.get_default_limits
 
             validation_errors = validate(
                 getattr(superself, "graphql_schema", superself),
                 document_ast,
-                [TempLimitsValidationRule],
+                _rules,
             )
             if validation_errors:
                 return ExecutionResult(errors=validation_errors)

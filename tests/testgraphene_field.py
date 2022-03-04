@@ -5,7 +5,7 @@ import graphene
 
 from graphene_protector import Limits
 from graphene_protector.graphene import Schema as ProtectorSchema
-from .base import Person
+from .graphene_base import Person
 
 
 class Person3(graphene.ObjectType):

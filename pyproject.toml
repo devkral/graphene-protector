@@ -7,21 +7,17 @@ license = "MIT"
 repository = "https://github.com/devkral/graphene-protector"
 
 [tool.poetry.dependencies]
-python = ">=3.6,<4"
+python = ">=3.7,<4"
 graphql-core = ">=2"
 graphene = { version = ">=2", optional=true }
 graphene-django = { version = "*", optional=true }
 
-strawberry-graphql-django = { version = "*", optional=true, python = ">=3.7" }
-strawberry-graphql = { version = ">=0.26", optional=true, python = ">=3.7"  }
+strawberry-graphql-django = { version = "*", optional=true }
+strawberry-graphql = { version = "*", optional=true  }
 
 [tool.poetry.dev-dependencies]
-tox = ">=4.0alpha1"
-graphene = ">=3.0"
-graphene-django = ">=3.0b7"
+tox = "*"
 graphql-core = ">=3"
-strawberry-graphql-django = { version = "*", python = ">=3.7" }
-strawberry-graphql = { version = ">=0.26", python = ">=3.7" }
 django = { version = ">=4.0", python = ">=3.8" }
 
 [build-system]

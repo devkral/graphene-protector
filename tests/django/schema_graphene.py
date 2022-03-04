@@ -2,7 +2,7 @@ import graphene
 
 from graphene_protector import Limits
 from graphene_protector.django.graphene import Schema as ProtectorSchema
-from ..base import Person
+from ..graphene_base import Person
 
 
 class Query(graphene.ObjectType):

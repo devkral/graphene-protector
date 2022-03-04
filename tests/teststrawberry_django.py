@@ -1,8 +1,6 @@
 from django.test import TestCase
 from django.conf import settings
 
-from graphene_django.settings import graphene_settings
-
 from graphene_protector import Limits
 from graphene_protector.django.strawberry import (
     Schema as ProtectorGrapheneSchema,
@@ -10,12 +8,12 @@ from graphene_protector.django.strawberry import (
 
 from graphql import print_schema
 
-from .strawberry.schema import Query
+from .django.schema_strawberry import Query
 
 schema = ProtectorGrapheneSchema(query=Query, limits=Limits(selections=100))
 
 
-class TestDjango(TestCase):
+class TestDjangoStrawberry(TestCase):
     def test_defaults(self):
         limits = schema.get_default_limits()
         self.assertEqual(settings.GRAPHENE_PROTECTOR_DEPTH_LIMIT, limits.depth)
@@ -24,7 +22,6 @@ class TestDjango(TestCase):
         )
 
     def test_field_overwrites(self):
-        schema = graphene_settings.SCHEMA
 
         with self.subTest("rejected"):
             query = """
@@ -40,7 +37,7 @@ class TestDjango(TestCase):
       }
     }
 """
-            result = schema.execute(query)
+            result = schema.execute_sync(query)
             self.assertTrue(result.errors)
 
         with self.subTest("success"):
@@ -57,13 +54,11 @@ class TestDjango(TestCase):
       }
     }
 """
-            result = schema.execute(query)
+            result = schema.execute_sync(query)
             self.assertFalse(result.errors)
 
     def test_generate_scheme(self):
-        schema = graphene_settings.SCHEMA
         schema.introspect()
-        # graphene < 3: schema is graphql_schema
-        print_schema(getattr(schema, "graphql_schema", schema))
+        print_schema(getattr(schema, "_schema", schema))
         # doesn't work
         # print_schema(schema)

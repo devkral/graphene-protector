@@ -10,7 +10,7 @@ from graphene_protector.django.graphene import (
 
 from graphql import print_schema
 
-from .django.schema import Query
+from .django.schema_graphene import Query
 
 schema = ProtectorGrapheneSchema(query=Query, limits=Limits(selections=100))
 

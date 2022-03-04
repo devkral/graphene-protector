@@ -6,7 +6,7 @@ from dataclasses import fields
 
 from graphene_protector import Limits
 from graphene_protector.graphene import Schema as ProtectorSchema
-from .base import Person
+from .graphene_base import Person
 
 
 class Query(graphene.ObjectType):

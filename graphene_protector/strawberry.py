@@ -27,9 +27,14 @@ class CustomGrapheneProtector(AddValidationRules):
         The limits definition
     """
 
-    def __init__(self, limits: base.Limits):
-        class CustomLimitsValidationRule(base.LimitsValidationRule):
-            default_limits = limits
+    def __init__(self, limits: base.Limits = None):
+        if limits:
+
+            class CustomLimitsValidationRule(base.LimitsValidationRule):
+                default_limits = limits
+
+        else:
+            CustomLimitsValidationRule = base.LimitsValidationRule
 
         super().__init__([CustomLimitsValidationRule])
 

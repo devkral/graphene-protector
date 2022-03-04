@@ -257,6 +257,8 @@ def decorate_limits(fn):
                     schema = getattr(superself, "graphql_schema")
                 elif hasattr(superself, "_schema"):
                     schema = getattr(superself, "_schema")
+                else:
+                    schema = superself
                 schema.get_default_limits = superself.get_default_limits
 
                 validation_errors = validate(

@@ -13,7 +13,7 @@ graphene = { version = ">=2", optional=true }
 graphene-django = { version = "*", optional=true }
 
 strawberry-graphql-django = { version = "*", optional=true, python = ">=3.7" }
-strawberry-graphql = { version = ">=0.92", optional=true, python = ">=3.7"  }
+strawberry-graphql = { version = ">=0.26", optional=true, python = ">=3.7"  }
 
 [tool.poetry.dev-dependencies]
 tox = ">=4.0alpha1"
@@ -21,7 +21,7 @@ graphene = ">=3.0"
 graphene-django = ">=3.0b7"
 graphql-core = ">=3"
 strawberry-graphql-django = { version = "*", python = ">=3.7" }
-strawberry-graphql = { version = ">=0.92", python = ">=3.7" }
+strawberry-graphql = { version = ">=0.26", python = ">=3.7" }
 django = { version = ">=4.0", python = ">=3.8" }
 
 [build-system]

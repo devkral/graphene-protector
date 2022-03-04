@@ -455,7 +455,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.6,<4"
-content-hash = "f5562cdb77c681603cabf43522887c153fa56a8c6f82e7f5aef123abf56223ba"
+content-hash = "bf7fda091a4fce6744a7ccf74cafc4583ed1db56aa5ddcebf7dd6407a3176bcd"
 
 [metadata.files]
 aniso8601 = [

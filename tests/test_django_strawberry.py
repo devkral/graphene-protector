@@ -4,13 +4,15 @@ from django.conf import settings
 from graphene_django.settings import graphene_settings
 
 from graphene_protector import Limits
-from graphene_protector.django import Schema as ProtectorSchema
+from graphene_protector.django.strawberry import (
+    Schema as ProtectorGrapheneSchema,
+)
 
 from graphql import print_schema
 
-from .django.schema import Query
+from .strawberry.schema import Query
 
-schema = ProtectorSchema(query=Query, limits=Limits(selections=100))
+schema = ProtectorGrapheneSchema(query=Query, limits=Limits(selections=100))
 
 
 class TestDjango(TestCase):

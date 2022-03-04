@@ -3,6 +3,7 @@ DEBUG = True
 SECRET_KEY = "fake-key"
 INSTALLED_APPS = [
     "graphene_django",
+    "strawberry.django",
 ]
 GRAPHENE_PROTECTOR_DEPTH_LIMIT = 2
 GRAPHENE_PROTECTOR_SELECTIONS_LIMIT = 50

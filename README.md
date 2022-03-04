@@ -24,10 +24,12 @@ This adds to django the following setting:
 
 Integrate with:
 
+graphene:
+
 ```python 3
 # schema.py
 # replace normal Schema import with:
-from graphene_protector.django import Schema
+from graphene_protector.django.graphene import Schema
 schema = Schema(query=Query, mutation=Mutation)
 ```
 
@@ -41,20 +43,32 @@ GRAPHENE = {
 }
 ```
 
+or strawberry:
+
+```python 3
+# schema.py
+# replace normal Schema import with:
+from graphene_protector.django.strawberry import Schema
+schema = Schema(query=Query, mutation=Mutation)
+```
+
 manual way (note: import from django for including defaults from settings)
 
 ```python 3
-from graphene_protector.django import Schema
+from graphene_protector.django.graphene import Schema
+# or
+# from graphene_protector.django.strawberry import Schema
 schema = Schema(query=Query)
 result = schema.execute(query_string)
-
 ```
 
 manual way with custom default Limits
 
 ```python 3
 from graphene_protector import Limits
-from graphene_protector.django import Schema
+from graphene_protector.django.graphene import Schema
+# or
+# from graphene_protector.django.strawberry import Schema
 schema = graphene.Schema(query=Query, limits=Limits(complexity=None))
 result = schema.execute(
     query_string
@@ -62,17 +76,18 @@ result = schema.execute(
 
 ```
 
-## Graphene
+## Graphene & Strawberry
 
 limits keyword with Limits object is supported.
 
 ```python 3
 from graphene_protector import Limits
 from graphene_protector.graphene import Schema
+# or
+# from graphene_protector.strawberry import Schema
 schema = Schema(query=Query, limits=Limits(depth=20, selections=None, complexity=100))
 result = schema.execute(query_string)
 ```
-
 
 ## pure graphql
 
@@ -107,6 +122,15 @@ self.assertFalse(validate(schema, query_ast, [LimitsValidationRule]))
 
 ```
 
+strawberry extension variant
+
+```python 3
+from graphene_protector import Limits
+from graphene_protector.strawberry import CustomGrapheneProtector
+from strawberry import Schema
+schema = Schema(query=Query, extensions=[CustomGrapheneProtector(Limits(depth=20, selections=None, complexity=100))])
+result = schema.execute(query_string)
+```
 
 or with custom defaults via Mixin
 
@@ -116,10 +140,10 @@ or with custom defaults via Mixin
 from graphene_protector import Limits, SchemaMixin, LimitsValidationRule
 from graphql.type.schema import Schema
 
-class CustomSchema(Schema):
+class CustomSchema(SchemaMixin, Schema):
     default_limits = Limits(depth=20, selections=None, complexity=100)
 
-schema = Schema(
+schema = CustomSchema(
     query=Query,
 )
 query_ast = parse("{ hello }")
@@ -127,6 +151,19 @@ self.assertFalse(validate(schema, query_ast, [LimitsValidationRule]))
 
 ```
 
+strawberry extension variant with mixin
+
+```python 3
+from graphene_protector import Limits, SchemaMixin
+from graphene_protector.strawberry import CustomGrapheneProtector
+from strawberry import Schema
+
+class CustomSchema(SchemaMixin, Schema):
+    default_limits = Limits(depth=20, selections=None, complexity=100)
+
+schema = Schema(query=Query, extensions=[CustomGrapheneProtector()])
+result = schema.execute(query_string)
+```
 
 
 

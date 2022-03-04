@@ -1,7 +1,7 @@
 import graphene
 
 from graphene_protector import Limits
-from graphene_protector.django import Schema as ProtectorSchema
+from graphene_protector.django.graphene import Schema as ProtectorSchema
 from ..base import Person
 
 

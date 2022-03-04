@@ -253,12 +253,14 @@ def decorate_limits(fn):
                     document_ast = parse(query)
                 except GraphQLError as error:
                     return ExecutionResult(data=None, errors=[error])
-
-                schema = getattr(superself, "graphql_schema", superself)
+                if hasattr(superself, "graphql_schema"):
+                    schema = getattr(superself, "graphql_schema")
+                elif hasattr(superself, "_schema"):
+                    schema = getattr(superself, "_schema")
                 schema.get_default_limits = superself.get_default_limits
 
                 validation_errors = validate(
-                    getattr(superself, "graphql_schema", superself),
+                    schema,
                     document_ast,
                     _rules,
                 )
@@ -283,10 +285,15 @@ class SchemaMixin:
     default_limits = None
 
     def __init_subclass__(cls, **kwargs):
-        if hasattr(cls, "execute"):
-            cls.execute = decorate_limits(cls.execute)
-        if hasattr(cls, "execute_async"):
-            cls.execute_async = decorate_limits_async(cls.execute_async)
+        if hasattr(cls, "execute_sync"):
+            cls.execute_sync = decorate_limits(cls.execute_sync)
+            if hasattr(cls, "execute"):
+                cls.execute = decorate_limits_async(cls.execute)
+        else:
+            if hasattr(cls, "execute"):
+                cls.execute = decorate_limits(cls.execute)
+            if hasattr(cls, "execute_async"):
+                cls.execute_async = decorate_limits_async(cls.execute_async)
         if hasattr(cls, "subscribe"):
             cls.subscribe = decorate_limits_async(cls.subscribe)
 

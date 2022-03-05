@@ -271,17 +271,6 @@ python-versions = "*"
 six = ">=1.4.0"
 
 [[package]]
-name = "sentinel"
-version = "0.3.0"
-description = "Create sentinel objects, akin to None, NotImplemented, Ellipsis"
-category = "main"
-optional = true
-python-versions = ">=3.6,<4.0"
-
-[package.extras]
-varname = ["varname (>=0.1)"]
-
-[[package]]
 name = "singledispatch"
 version = "3.7.0"
 description = "Backport functools.singledispatch from Python 3.4 to Python 2.6-3.3."
@@ -314,7 +303,7 @@ python-versions = ">=3.5"
 
 [[package]]
 name = "strawberry-graphql"
-version = "0.99.2"
+version = "0.100.0"
 description = "A library for creating GraphQL APIs"
 category = "main"
 optional = true
@@ -327,14 +316,13 @@ graphql-core = ">=3.2.0,<3.3.0"
 pygments = ">=2.3,<3.0"
 python-dateutil = ">=2.7.0,<3.0.0"
 python-multipart = ">=0.0.5,<0.0.6"
-sentinel = ">=0.3.0,<0.4.0"
 typing_extensions = ">=3.7.4,<5.0.0"
 
 [package.extras]
 asgi = ["starlette (>=0.13.6,<0.17.0)"]
 debug-server = ["starlette (>=0.13.6,<0.17.0)", "uvicorn (>=0.11.6,<0.18.0)"]
-django = ["Django (>=2.2,<4)", "Django (>=2.2,<5)", "asgiref (>=3.2,<4.0)"]
-flask = ["flask (>=1.1,<2.0)"]
+django = ["Django (>=2.2)", "asgiref (>=3.2,<4.0)"]
+flask = ["flask (>=1.1)"]
 opentelemetry = ["opentelemetry-api (<2)", "opentelemetry-sdk (<2)"]
 chalice = ["chalice (>=1.22,<2.0)"]
 pydantic = ["pydantic (<2)"]
@@ -542,10 +530,6 @@ python-dateutil = [
 python-multipart = [
     {file = "python-multipart-0.0.5.tar.gz", hash = "sha256:f7bb5f611fc600d15fa47b3974c8aa16e93724513b49b5f95c81e6624c83fa43"},
 ]
-sentinel = [
-    {file = "sentinel-0.3.0-py3-none-any.whl", hash = "sha256:bd8710dd26752039c668604f6be2aaf741b56f7811c5924a4dcdfd74359244f3"},
-    {file = "sentinel-0.3.0.tar.gz", hash = "sha256:f28143aa4716dbc8f6193f5682176a3c33cd26aaae05d9ecf66c186a9887cc2d"},
-]
 singledispatch = [
     {file = "singledispatch-3.7.0-py2.py3-none-any.whl", hash = "sha256:bc77afa97c8a22596d6d4fc20f1b7bdd2b86edc2a65a4262bdd7cc3cc19aa989"},
     {file = "singledispatch-3.7.0.tar.gz", hash = "sha256:c1a4d5c1da310c3fd8fccfb8d4e1cb7df076148fd5d858a819e37fffe44f3092"},
@@ -559,8 +543,8 @@ sqlparse = [
     {file = "sqlparse-0.4.2.tar.gz", hash = "sha256:0c00730c74263a94e5a9919ade150dfc3b19c574389985446148402998287dae"},
 ]
 strawberry-graphql = [
-    {file = "strawberry-graphql-0.99.2.tar.gz", hash = "sha256:cbe67482525ce3ffb7850e7105b0f583486403e01eadfed3bf6355db163c331b"},
-    {file = "strawberry_graphql-0.99.2-py3-none-any.whl", hash = "sha256:2e47c9d7693622169cd4e9716016e18c145e7f62ce30578ad22de26a65f3416d"},
+    {file = "strawberry-graphql-0.100.0.tar.gz", hash = "sha256:b66e111f9eeafde06df9348ecff8cb7731151bad11459f963f88b4e82cca8e08"},
+    {file = "strawberry_graphql-0.100.0-py3-none-any.whl", hash = "sha256:61d8d09b412fb0bd642c335c48716a4a044ef7994f72bdc372e395023432e542"},
 ]
 strawberry-graphql-django = [
     {file = "strawberry-graphql-django-0.2.5.tar.gz", hash = "sha256:483d97c24ce440a1e3cb92ec3e1fdc0cf534d9afa79600396b0a27a5d9d97793"},

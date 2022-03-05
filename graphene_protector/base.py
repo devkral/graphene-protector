@@ -119,7 +119,7 @@ def merge_limits(old_limits, new_limits):
     return replace(old_limits, **_limits)
 
 
-def limits_for_field(field, old_limits):
+def limits_for_field(field, old_limits, **kwargs):
     # retrieve optional limitation attributes defined for the current
     # operation
     effective_limits = getattr(
@@ -137,6 +137,7 @@ def check_resource_usage(
     limits,
     on_error,
     auto_snakecase=False,
+    get_limits_for_field=limits_for_field,
     level=0,
 ):
     # level 0: starts on query level. Every query is level 1
@@ -163,8 +164,18 @@ def check_resource_usage(
         else:
             field = field_orig
         if field.selection_set:
-            schema_field = getattr(schema, fieldname)
-            sub_limits = limits_for_field(schema_field, limits)
+            try:
+                schema_field = getattr(schema, fieldname)
+            except AttributeError:
+                schema_field = schema
+                if hasattr(schema_field, "of_type"):
+                    schema_field = schema_field.of_type
+
+                if hasattr(schema_field, "fields"):
+                    schema_field = schema_field.fields[fieldname]
+            sub_limits = get_limits_for_field(
+                schema_field, limits, parent=schema, fieldname=fieldname
+            )
             new_depth, local_selections = check_resource_usage(
                 schema_field.type,
                 field,
@@ -172,6 +183,7 @@ def check_resource_usage(
                 sub_limits,
                 on_error=on_error,
                 auto_snakecase=auto_snakecase,
+                get_limits_for_field=get_limits_for_field,
                 level=level + 1,
             )
             # called per query, selection
@@ -219,15 +231,33 @@ class LimitsValidationRule(ValidationRule):
             if not isinstance(definition, OperationDefinitionNode):
                 continue
             maintype = get_optype(schema, definition)
+            get_limits_for_field = limits_for_field
             if hasattr(maintype, "graphene_type"):
                 maintype = maintype.graphene_type
-            #
+            if hasattr(schema, "_strawberry_schema"):
+
+                def get_limits_for_field(
+                    field, old_limits, parent, fieldname, **kwargs
+                ):
+                    try:
+                        name = parent.name
+                    except AttributeError:
+                        name = parent.of_type.name
+                    definition = (
+                        schema._strawberry_schema.schema_converter.type_map[
+                            name
+                        ]
+                    ).definition
+                    nfield = definition.get_field(fieldname)
+                    return limits_for_field(nfield, old_limits)
+
             check_resource_usage(
                 maintype,
                 definition,
                 self.context,
                 self.default_limits,
                 self.report_error,
+                get_limits_for_field=get_limits_for_field,
                 auto_snakecase=self.auto_snakecase,
             )
 

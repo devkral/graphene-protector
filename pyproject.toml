@@ -1,10 +1,25 @@
 [tool.poetry]
 name = "graphene-protector"
-version = "0.6.0"
-description = "Protects graphene against malicious queries"
+version = "0.6.1"
+description = "Protects graphene, graphql or strawberry against malicious queries"
 authors = ["alex <devkral@web.de>"]
 license = "MIT"
 repository = "https://github.com/devkral/graphene-protector"
+keywords=[
+    "graphql",
+    "strawberry",
+    "extension"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Framework :: Django",
+    "Framework :: Graphene",
+    "Framework :: Strawberry",
+    "Topic :: Security",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Libraries :: Python Modules"
+]
+
 
 [tool.poetry.dependencies]
 python = ">=3.7,<4"

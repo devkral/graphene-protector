@@ -1,8 +1,9 @@
 # What does this project solve?
 
-It is a small backend for a graphql schema which protects against malicious requests.
-
-The current logic is simple and efficient (early bail out)
+It provides protection against malicious grapqhl requests (resource exhaustion).
+Despite its name it can be used with graphql (pure), graphene, strawberry.
+It is implemented via a custom ValidationRule,
+supports error reporting and early bail out strategies as well as limits for single fields
 
 # Installation
 

@@ -303,7 +303,7 @@ python-versions = ">=3.5"
 
 [[package]]
 name = "strawberry-graphql"
-version = "0.100.0"
+version = "0.102.2"
 description = "A library for creating GraphQL APIs"
 category = "main"
 optional = true
@@ -391,7 +391,7 @@ python-versions = ">=2"
 
 [[package]]
 name = "virtualenv"
-version = "20.13.2"
+version = "20.13.3"
 description = "Virtual Python Environment builder"
 category = "dev"
 optional = false
@@ -420,10 +420,13 @@ python-versions = ">=3.7"
 docs = ["sphinx", "jaraco.packaging (>=8.2)", "rst.linker (>=1.9)"]
 testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-cov", "pytest-enabler (>=1.0.1)", "jaraco.itertools", "func-timeout", "pytest-black (>=0.3.7)", "pytest-mypy"]
 
+[extras]
+optional = ["graphene", "graphene-django", "strawberry-graphql", "strawberry-graphql-django"]
+
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7,<4"
-content-hash = "7b20d3346a1ec0598999e3c572020b7cb1e86954e4eb8432d243368ca196b936"
+content-hash = "9fc5f9794402b299d3fb330b9db4a6810bf29f6961a894e11f658b787b55d1e1"
 
 [metadata.files]
 asgiref = [
@@ -543,8 +546,8 @@ sqlparse = [
     {file = "sqlparse-0.4.2.tar.gz", hash = "sha256:0c00730c74263a94e5a9919ade150dfc3b19c574389985446148402998287dae"},
 ]
 strawberry-graphql = [
-    {file = "strawberry-graphql-0.100.0.tar.gz", hash = "sha256:b66e111f9eeafde06df9348ecff8cb7731151bad11459f963f88b4e82cca8e08"},
-    {file = "strawberry_graphql-0.100.0-py3-none-any.whl", hash = "sha256:61d8d09b412fb0bd642c335c48716a4a044ef7994f72bdc372e395023432e542"},
+    {file = "strawberry-graphql-0.102.2.tar.gz", hash = "sha256:f8134f481759e2a6a5fd76c58a6b597bef667302ed855a2836437efad36aae93"},
+    {file = "strawberry_graphql-0.102.2-py3-none-any.whl", hash = "sha256:e410fc048eb3be1b8d4d9a29cbfc823386ba84e126f85d7dee62be610b73abae"},
 ]
 strawberry-graphql-django = [
     {file = "strawberry-graphql-django-0.2.5.tar.gz", hash = "sha256:483d97c24ce440a1e3cb92ec3e1fdc0cf534d9afa79600396b0a27a5d9d97793"},
@@ -567,8 +570,8 @@ tzdata = [
     {file = "tzdata-2021.5.tar.gz", hash = "sha256:68dbe41afd01b867894bbdfd54fa03f468cfa4f0086bfb4adcd8de8f24f3ee21"},
 ]
 virtualenv = [
-    {file = "virtualenv-20.13.2-py2.py3-none-any.whl", hash = "sha256:e7b34c9474e6476ee208c43a4d9ac1510b041c68347eabfe9a9ea0c86aa0a46b"},
-    {file = "virtualenv-20.13.2.tar.gz", hash = "sha256:01f5f80744d24a3743ce61858123488e91cb2dd1d3bdf92adaf1bba39ffdedf0"},
+    {file = "virtualenv-20.13.3-py2.py3-none-any.whl", hash = "sha256:dd448d1ded9f14d1a4bfa6bfc0c5b96ae3be3f2d6c6c159b23ddcfd701baa021"},
+    {file = "virtualenv-20.13.3.tar.gz", hash = "sha256:e9dd1a1359d70137559034c0f5433b34caf504af2dc756367be86a5a32967134"},
 ]
 zipp = [
     {file = "zipp-3.7.0-py3-none-any.whl", hash = "sha256:b47250dd24f92b7dd6a0a8fc5244da14608f3ca90a5efcd37a3b1642fac9a375"},

@@ -1,60 +1,23 @@
 import re
+import sys
 from dataclasses import dataclass, fields, replace
 from functools import wraps
 from typing import List, Union
 
 from graphql.error import GraphQLError
-from graphql.execution import ExecutionResult as GraphqlExecutionResult
+from graphql.execution import ExecutionResult
+from graphql.language import (
+    DefinitionNode,
+    FragmentSpreadNode,
+    OperationDefinitionNode,
+    parse,
+)
+from graphql.validation import ValidationRule, validate
 
-try:
-    from graphql.language import (
-        DefinitionNode,
-        FragmentSpreadNode,
-        OperationDefinitionNode,
-        parse,
-    )
-    from graphql.validation import ValidationContext, ValidationRule, validate
 
-    ExecutionResult = GraphqlExecutionResult
-
-    def get_schema(ctx: ValidationContext):
-        return ctx.schema
-
-    def get_ast(ctx: ValidationContext):
-        return ctx.document
-
-    def get_optype(schema, definition):
-        operation_type = definition.operation.name.title()
-        return schema.get_type(operation_type)
-
-except ImportError:
-    from graphql.language.ast import (
-        Definition as DefinitionNode,
-        FragmentSpread as FragmentSpreadNode,
-        OperationDefinition as OperationDefinitionNode,
-    )
-    from graphql.language.parser import parse
-    from graphql.validation.rules.base import ValidationRule
-    from graphql.validation.validation import ValidationContext, validate
-
-    class ExecutionResult(GraphqlExecutionResult):
-        def __init__(self, data=None, errors=None, extensions=None):
-            super().__init__(
-                data=data,
-                errors=errors,
-                extensions=extensions,
-                invalid=bool(errors),
-            )
-
-    def get_schema(ctx: ValidationContext):
-        return ctx.get_schema()
-
-    def get_ast(ctx: ValidationContext):
-        return ctx.get_ast()
-
-    def get_optype(schema, definition):
-        operation_type = definition.operation.title()
-        return schema.get_type(operation_type)
+def get_optype(schema, definition):
+    operation_type = definition.operation.name.title()
+    return schema.get_type(operation_type)
 
 
 # Adapted from this response in Stackoverflow
@@ -76,10 +39,18 @@ def to_snake_case(name):
 
 
 class MISSING:
-    pass
+    """custom MISSING sentinel for merge logic"""
 
 
-@dataclass
+_deco_options = {}
+if sys.version_info >= (3, 10):
+    _deco_options["slots"] = True
+
+if sys.version_info >= (3, 11):
+    _deco_options["weakref_slot"] = True
+
+
+@dataclass(**_deco_options)
 class Limits:
     depth: Union[int, None, MISSING] = MISSING
     selections: Union[int, None, MISSING] = MISSING
@@ -213,7 +184,7 @@ class LimitsValidationRule(ValidationRule):
 
     def __init__(self, context):
         super().__init__(context)
-        schema = get_schema(self.context)
+        schema = self.context.schema
         # if not set use schema to get defaults or set in case no limits
         # are found to DEFAULT:LIMITS
         if not self.default_limits:
@@ -224,9 +195,9 @@ class LimitsValidationRule(ValidationRule):
     def enter(self, node, key, parent, path, ancestors):
         if parent is not None:
             return None
-        schema = get_schema(self.context)
+        schema = self.context.schema
 
-        document: List[DefinitionNode] = get_ast(self.context)
+        document: List[DefinitionNode] = self.context.document
         for definition in document.definitions:
             if not isinstance(definition, OperationDefinitionNode):
                 continue
@@ -270,45 +241,52 @@ class LimitsValidationRule(ValidationRule):
 _rules = [LimitsValidationRule]
 
 
+def _decorate_limits_helper(superself, args, kwargs):
+    check_limits = kwargs.pop("check_limits", True)
+    if check_limits and (kwargs.get("query") or len(args)):
+        try:
+            query = kwargs.get("query", args[0])
+        except IndexError:
+            pass
+        if query:
+            try:
+                document_ast = parse(query)
+            except GraphQLError as error:
+                return ExecutionResult(data=None, errors=[error])
+            if hasattr(superself, "graphql_schema"):
+                schema = getattr(superself, "graphql_schema")
+            elif hasattr(superself, "_schema"):
+                schema = getattr(superself, "_schema")
+            else:
+                schema = superself
+            schema.get_default_limits = superself.get_default_limits
+
+            return validate(
+                schema,
+                document_ast,
+                _rules,
+            )
+    return []
+
+
 def decorate_limits(fn):
     @wraps(fn)
-    def wrapper(superself, *args, check_limits=True, **kwargs):
-        if check_limits and (kwargs.get("query") or len(args)):
-            try:
-                query = kwargs.get("query", args[0])
-            except IndexError:
-                pass
-            if query:
-                try:
-                    document_ast = parse(query)
-                except GraphQLError as error:
-                    return ExecutionResult(data=None, errors=[error])
-                if hasattr(superself, "graphql_schema"):
-                    schema = getattr(superself, "graphql_schema")
-                elif hasattr(superself, "_schema"):
-                    schema = getattr(superself, "_schema")
-                else:
-                    schema = superself
-                schema.get_default_limits = superself.get_default_limits
-
-                validation_errors = validate(
-                    schema,
-                    document_ast,
-                    _rules,
-                )
-                if validation_errors:
-                    return ExecutionResult(errors=validation_errors)
+    def wrapper(superself, *args, **kwargs):
+        validation_errors = _decorate_limits_helper(superself, args, kwargs)
+        if validation_errors:
+            return ExecutionResult(errors=validation_errors)
         return fn(superself, *args, **kwargs)
 
     return wrapper
 
 
 def decorate_limits_async(fn):
-    decorated = decorate_limits(fn)
-
     @wraps(fn)
     async def wrapper(superself, *args, **kwargs):
-        return await decorated(superself, *args, **kwargs)
+        validation_errors = _decorate_limits_helper(superself, args, kwargs)
+        if validation_errors:
+            return ExecutionResult(errors=validation_errors)
+        return await fn(superself, *args, **kwargs)
 
     return wrapper
 

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "graphene-protector"
-version = "0.6.3"
+version = "0.7.0"
 description = "Protects graphene, graphql or strawberry against malicious queries"
 authors = ["alex <devkral@web.de>"]
 license = "MIT"
@@ -20,7 +20,7 @@ classifiers = [
 
 
 [tool.poetry.dependencies]
-python = ">=3.9,<4"
+python = ">=3.8,<4"
 graphql-core = ">=3"
 graphene = { version = ">=3", optional=true }
 graphene-django = { version = ">=3", optional=true }
@@ -28,7 +28,14 @@ graphene-django = { version = ">=3", optional=true }
 strawberry-graphql = { version = ">=0.92", optional=true  }
 strawberry-graphql-django = { version = "*", optional=true }
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.test]
+optional = true
+
+
+[tool.poetry.group.test.dependencies]
+tox = "*"
+
+[tool.poetry.group.dev.dependencies]
 tox = "*"
 graphene = { version = ">=3"}
 graphene-django = { version = ">=3" }

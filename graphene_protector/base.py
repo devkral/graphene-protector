@@ -20,6 +20,12 @@ def get_optype(schema, definition):
     return schema.get_type(operation_type)
 
 
+def follow_of_type(field):
+    while hasattr(field, "of_type"):
+        field = getattr(field, "of_type")
+    return field
+
+
 # Adapted from this response in Stackoverflow
 # http://stackoverflow.com/a/19053800/1072990
 def to_camel_case(snake_str):
@@ -138,12 +144,11 @@ def check_resource_usage(
             try:
                 schema_field = getattr(schema, fieldname)
             except AttributeError:
-                schema_field = schema
-                if hasattr(schema_field, "of_type"):
-                    schema_field = schema_field.of_type
-
+                schema_field = follow_of_type(schema)
                 if hasattr(schema_field, "fields"):
-                    schema_field = schema_field.fields[fieldname]
+                    schema_field = follow_of_type(
+                        schema_field.fields[fieldname]
+                    )
             sub_limits = get_limits_for_field(
                 schema_field, limits, parent=schema, fieldname=fieldname
             )
@@ -210,10 +215,7 @@ class LimitsValidationRule(ValidationRule):
                 def get_limits_for_field(
                     field, old_limits, parent, fieldname, **kwargs
                 ):
-                    try:
-                        name = parent.name
-                    except AttributeError:
-                        name = parent.of_type.name
+                    name = follow_of_type(parent).name
                     definition = (
                         schema._strawberry_schema.schema_converter.type_map[
                             name

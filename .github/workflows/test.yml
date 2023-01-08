@@ -21,4 +21,4 @@ jobs:
               run: poetry install --only main,test
             - name: Run tox
               # Run tox using the version of Python in `PATH`
-              run: tox -e py
+              run: poetry run tox -e py

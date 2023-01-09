@@ -2,7 +2,7 @@ import re
 import sys
 from dataclasses import dataclass, fields, replace
 from functools import wraps
-from typing import List, Union
+from typing import List, Tuple, Union, Callable
 
 from graphql.error import GraphQLError
 from graphql.execution import ExecutionResult
@@ -11,17 +11,14 @@ from graphql.language import (
     InlineFragmentNode,
     FragmentSpreadNode,
     OperationDefinitionNode,
+    Node,
     parse,
 )
-from graphql.validation import ValidationRule, validate
+from graphql.type.definition import GraphQLType
+from graphql.validation import ValidationRule, validate, ValidationContext
 
 
-def get_optype(schema, definition):
-    operation_type = definition.operation.name.title()
-    return schema.get_type(operation_type)
-
-
-def follow_of_type(field):
+def follow_of_type(field: GraphQLType) -> GraphQLType:
     while hasattr(field, "of_type"):
         field = getattr(field, "of_type")
     return field
@@ -97,7 +94,7 @@ def merge_limits(old_limits, new_limits):
     return replace(old_limits, **_limits)
 
 
-def limits_for_field(field, old_limits, **kwargs):
+def limits_for_field(field, old_limits, **kwargs) -> Tuple[Limits, Limits]:
     # retrieve optional limitation attributes defined for the current
     # operation
     effective_limits = getattr(
@@ -105,26 +102,28 @@ def limits_for_field(field, old_limits, **kwargs):
         "_graphene_protector_limits",
         _missing_limits,
     )
-    return merge_limits(old_limits, effective_limits)
+    return merge_limits(old_limits, effective_limits), effective_limits
 
 
 def check_resource_usage(
     schema,
-    node,
-    validation_context,
-    limits,
-    on_error,
+    node: Node,
+    validation_context: ValidationContext,
+    limits: Limits,
+    on_error: Callable[[str, Node], None],
     auto_snakecase=False,
     get_limits_for_field=limits_for_field,
-    level=0,
-):
+    level_depth=0,
+    level_complexity=0,
+) -> Tuple[int, int, int]:
     # level 0: starts on query level. Every query is level 1
     selections = 0
-    max_depth = level
+    max_level_depth = level_depth
+    max_level_complexity = level_complexity
     assert (
         limits.depth is not MISSING
     ), "missing should be already resolved here"
-    if limits.depth and max_depth > limits.depth:
+    if limits.depth and max_level_depth > limits.depth:
         on_error(
             DepthLimitReached(
                 "Query is too deep",
@@ -145,25 +144,34 @@ def check_resource_usage(
 
         # union
         if hasattr(field, "types"):
-            sub_limits = limits
+            merged_limits = limits
             local_selections = 0
             for field_type in field.types:
-                new_depth, local2_selections = check_resource_usage(
+                (
+                    new_depth,
+                    new_depth_complexity,
+                    local2_selections,
+                ) = check_resource_usage(
                     follow_of_type(field_type),
                     field,
                     validation_context,
-                    sub_limits,
+                    merged_limits,
                     on_error=on_error,
                     auto_snakecase=auto_snakecase,
                     get_limits_for_field=get_limits_for_field,
-                    level=level + 1,
+                    level_depth=level_depth + 1,
+                    # don't increase complexity, in unions it stays the same
+                    level_complexity=level_complexity,
                 )
+
+                # we know here, that there are no individual sub_limits
 
                 # called per query, selection
                 if (
-                    sub_limits.complexity
-                    and (new_depth - level) * local2_selections
-                    > sub_limits.complexity
+                    merged_limits.complexity
+                    and (new_depth_complexity - level_complexity)
+                    * local2_selections
+                    > merged_limits.complexity
                 ):
                     on_error(
                         ComplexityLimitReached("Query is too complex", node)
@@ -171,8 +179,10 @@ def check_resource_usage(
                 # find max of selections for unions
                 if local2_selections > local_selections:
                     local_selections = local2_selections
-                if new_depth > max_depth:
-                    max_depth = new_depth
+                if new_depth > max_level_depth:
+                    max_level_depth = new_depth
+                if new_depth_complexity > max_level_complexity:
+                    max_level_complexity = new_depth_complexity
             # ignore union fields itself for selection_count
             # because we have depth for that
             selections += local_selections
@@ -185,42 +195,58 @@ def check_resource_usage(
                     schema_field = follow_of_type(
                         schema_field.fields[field.name.value]
                     )
-            sub_limits = get_limits_for_field(
+            merged_limits, sub_limits = get_limits_for_field(
                 schema_field, limits, parent=schema, fieldname=fieldname
             )
             if hasattr(schema_field, "types"):
                 sub_field_type = schema_field
             else:
                 sub_field_type = follow_of_type(schema_field.type)
-            new_depth, local_selections = check_resource_usage(
+            (
+                new_depth,
+                new_depth_complexity,
+                local_selections,
+            ) = check_resource_usage(
                 sub_field_type,
                 field,
                 validation_context,
-                sub_limits,
+                merged_limits,
                 on_error=on_error,
                 auto_snakecase=auto_snakecase,
                 get_limits_for_field=get_limits_for_field,
-                level=level + 1,
+                level_depth=level_depth + 1
+                if sub_limits.depth is MISSING
+                else 1,
+                level_complexity=level_complexity + 1
+                if sub_limits.complexity is MISSING
+                else 1,
             )
             # called per query, selection
             if (
-                sub_limits.complexity
-                and (new_depth - level) * local_selections
-                > sub_limits.complexity
+                merged_limits.complexity
+                and (new_depth - level_depth) * local_selections
+                > merged_limits.complexity
             ):
                 on_error(ComplexityLimitReached("Query is too complex", node))
-            if new_depth > max_depth:
-                max_depth = new_depth
+            # increase level counter only if limits are not redefined
+            if sub_limits.depth is MISSING and new_depth > max_level_depth:
+                max_level_depth = new_depth
+            if (
+                sub_limits.complexity is MISSING
+                and new_depth_complexity > max_level_complexity
+            ):
+                max_level_complexity = new_depth_complexity
 
             # ignore fields with selection_set itself for selection_count
             # because we have depth for that
-            selections += local_selections
+            if sub_limits.selections is MISSING:
+                selections += local_selections
         else:
             selections += 1
 
         if limits.selections and selections > limits.selections:
             on_error(SelectionsLimitReached("Query selects too much", node))
-    return max_depth, selections
+    return max_level_depth, max_level_complexity, selections
 
 
 class LimitsValidationRule(ValidationRule):
@@ -248,7 +274,9 @@ class LimitsValidationRule(ValidationRule):
         for definition in document.definitions:
             if not isinstance(definition, OperationDefinitionNode):
                 continue
-            maintype = get_optype(schema, definition)
+            operation_type = definition.operation.name.title()
+            maintype = schema.get_type(operation_type)
+            assert maintype is not None
             get_limits_for_field = limits_for_field
             if hasattr(maintype, "graphene_type"):
                 maintype = maintype.graphene_type

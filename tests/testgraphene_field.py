@@ -25,7 +25,7 @@ class Person4(graphene.ObjectType):
     id = graphene.ID()
     age = graphene.Int()
     depth = graphene.Int()
-    child = Limits(depth=3)(graphene.Field(Person))
+    child = Limits(depth=2)(graphene.Field(Person))
 
     def resolve_child(self, info):
         if self.depth == 0:

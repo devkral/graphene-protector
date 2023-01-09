@@ -9,8 +9,6 @@ supports error reporting and early bail out strategies as well as limits for sin
 
 ```sh
 pip install graphene-protector
-# in case of python <3.7
-#pip install dataclasses
 ```
 
 # Integration
@@ -106,7 +104,6 @@ self.assertFalse(validate(schema, query_ast, [LimitsValidationRule]))
 
 or with custom defaults
 
-
 ```python 3
 
 from graphene_protector import Limits, LimitsValidationRule
@@ -134,7 +131,6 @@ result = schema.execute(query_string)
 ```
 
 or with custom defaults via Mixin
-
 
 ```python 3
 
@@ -166,8 +162,6 @@ schema = Schema(query=Query, extensions=[CustomGrapheneProtector()])
 result = schema.execute(query_string)
 ```
 
-
-
 ## Limits
 
 A Limits object has following attributes:
@@ -188,12 +182,10 @@ Sometimes single fields should have different limits:
 
 Limits are inherited for unspecified parameters
 
-
 ## one-time disable limit checks
 
 to disable checks for one operation use check_limits=False (works for:
 execute, execute_async (if available), subscribe (if available)):
-
 
 ```python 3
 from graphene_protector import Limits
@@ -201,7 +193,6 @@ from graphene_protector.graphene import Schema
 schema = Schema(query=Query, limits=Limits(depth=20, selections=None, complexity=100))
 result = schema.execute(query_string, check_limits=False)
 ```
-
 
 # Development
 
@@ -213,6 +204,6 @@ If you want some new or better algorithms integrated just make a PR
 -   secure-graphene: lacks django integration, some features and has a not so easy findable name.
     But I accept: it is the "not invented here"-syndrome
 
-
 # TODO
+
 -   test mutations

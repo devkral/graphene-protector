@@ -1,9 +1,10 @@
 [tool.poetry]
 name = "graphene-protector"
-version = "0.7.2"
+version = "0.7.3"
 description = "Protects graphene, graphql or strawberry against malicious queries"
 authors = ["alex <devkral@web.de>"]
 license = "MIT"
+readme = "README.md"
 repository = "https://github.com/devkral/graphene-protector"
 keywords=[
     "graphql",

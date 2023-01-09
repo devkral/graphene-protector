@@ -25,7 +25,10 @@ class TestStrawberry(unittest.IsolatedAsyncioTestCase):
         )
         self.assertIsInstance(schema, StrawberrySchema)
         result = schema.execute_sync(
-            '{ persons(filters: [{name: "Hans"}]) {name} }'
+            """{ persons(filters: [{name: "Hans"}]) {
+                ... on Person1 {name}
+                ... on Person2 {name}
+            } }"""
         )
         self.assertFalse(result.errors)
         self.assertDictEqual(
@@ -49,7 +52,10 @@ class TestStrawberry(unittest.IsolatedAsyncioTestCase):
         )
         self.assertIsInstance(schema, StrawberrySchema)
         result = await schema.execute(
-            '{ persons(filters: [{name: "Hans"}]) {name} }'
+            """{ persons(filters: [{name: "Hans"}]) {
+                ... on Person1 {name}
+                ... on Person2 {name}
+            } }"""
         )
         self.assertFalse(result.errors)
         self.assertDictEqual(
@@ -62,7 +68,12 @@ class TestStrawberry(unittest.IsolatedAsyncioTestCase):
             extensions=[CustomGrapheneProtector()],
         )
         self.assertIsInstance(schema, StrawberrySchema)
-        result = await schema.execute("{ persons {name} }")
+        result = await schema.execute(
+            """{ persons(filters: [{name: "Hans"}]) {
+                ... on Person1 {name}
+                ... on Person2 {name}
+            } }"""
+        )
         self.assertFalse(result.errors)
         self.assertDictEqual(
             result.data, {"persons": [{"name": "Hans"}, {"name": "Zoe"}]}

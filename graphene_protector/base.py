@@ -8,6 +8,7 @@ from graphql.error import GraphQLError
 from graphql.execution import ExecutionResult
 from graphql.language import (
     DefinitionNode,
+    InlineFragmentNode,
     FragmentSpreadNode,
     OperationDefinitionNode,
     parse,
@@ -129,31 +130,70 @@ def check_resource_usage(
                 "Query is too deep",
             )
         )
-    for field_orig in node.selection_set.selections:
-        fieldname = field_orig.name.value
+    for field in node.selection_set.selections:
+        if isinstance(field, InlineFragmentNode):
+            fieldname = field.type_condition.name.value
+        else:
+            fieldname = field.name.value
         # ignore introspection queries
         if fieldname.startswith("__"):
             continue
         if auto_snakecase and not hasattr(schema, fieldname):
             fieldname = to_snake_case(fieldname)
-        if isinstance(field_orig, FragmentSpreadNode):
-            field = validation_context.getFragment(field_orig.name.value)
-        else:
-            field = field_orig
-        if field.selection_set:
+        if isinstance(field, FragmentSpreadNode):
+            field = validation_context.getFragment(field.name.value)
+
+        # union
+        if hasattr(field, "types"):
+            sub_limits = limits
+            local_selections = 0
+            for field_type in field.types:
+                new_depth, local2_selections = check_resource_usage(
+                    follow_of_type(field_type),
+                    field,
+                    validation_context,
+                    sub_limits,
+                    on_error=on_error,
+                    auto_snakecase=auto_snakecase,
+                    get_limits_for_field=get_limits_for_field,
+                    level=level + 1,
+                )
+
+                # called per query, selection
+                if (
+                    sub_limits.complexity
+                    and (new_depth - level) * local2_selections
+                    > sub_limits.complexity
+                ):
+                    on_error(
+                        ComplexityLimitReached("Query is too complex", node)
+                    )
+                # find max of selections for unions
+                if local2_selections > local_selections:
+                    local_selections = local2_selections
+                if new_depth > max_depth:
+                    max_depth = new_depth
+            # ignore union fields itself for selection_count
+            # because we have depth for that
+            selections += local_selections
+        elif field.selection_set:
             try:
                 schema_field = getattr(schema, fieldname)
             except AttributeError:
-                schema_field = follow_of_type(schema)
+                schema_field = schema
                 if hasattr(schema_field, "fields"):
                     schema_field = follow_of_type(
-                        schema_field.fields[fieldname]
+                        schema_field.fields[field.name.value]
                     )
             sub_limits = get_limits_for_field(
                 schema_field, limits, parent=schema, fieldname=fieldname
             )
+            if hasattr(schema_field, "types"):
+                sub_field_type = schema_field
+            else:
+                sub_field_type = follow_of_type(schema_field.type)
             new_depth, local_selections = check_resource_usage(
-                schema_field.type,
+                sub_field_type,
                 field,
                 validation_context,
                 sub_limits,
@@ -169,10 +209,12 @@ def check_resource_usage(
                 > sub_limits.complexity
             ):
                 on_error(ComplexityLimitReached("Query is too complex", node))
-            # ignore selection_set fields because we have depth for that
-            selections += local_selections
             if new_depth > max_depth:
                 max_depth = new_depth
+
+            # ignore fields with selection_set itself for selection_count
+            # because we have depth for that
+            selections += local_selections
         else:
             selections += 1
 
@@ -221,6 +263,10 @@ class LimitsValidationRule(ValidationRule):
                             name
                         ]
                     ).definition
+                    # e.g. union
+                    if not hasattr(definition, "get_field"):
+                        return limits_for_field(definition, old_limits)
+
                     nfield = definition.get_field(fieldname)
                     return limits_for_field(nfield, old_limits)
 

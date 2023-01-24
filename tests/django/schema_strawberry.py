@@ -18,6 +18,13 @@ class Person:
             return None
         return Person(id=self.id + 1, depth=self.depth - 1, age=34)
 
+    @Limits(depth=1)
+    @strawberry.field
+    def child_limited(self, info) -> Person:
+        if self.depth == 0:
+            return None
+        return Person(id=self.id + 1, depth=self.depth - 1, age=34)
+
 
 @strawberry.type
 class Query:

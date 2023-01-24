@@ -61,14 +61,14 @@ tzdata = ["tzdata"]
 
 [[package]]
 name = "cachetools"
-version = "5.2.1"
+version = "5.3.0"
 description = "Extensible memoizing collections and decorators"
 category = "dev"
 optional = false
 python-versions = "~=3.7"
 files = [
-    {file = "cachetools-5.2.1-py3-none-any.whl", hash = "sha256:8462eebf3a6c15d25430a8c27c56ac61340b2ecf60c9ce57afc2b97e450e47da"},
-    {file = "cachetools-5.2.1.tar.gz", hash = "sha256:5991bc0e08a1319bb618d3195ca5b6bc76646a49c21d55962977197b301cc1fe"},
+    {file = "cachetools-5.3.0-py3-none-any.whl", hash = "sha256:429e1a1e845c008ea6c85aa35d4b98b65d6a9763eeef3e37e92728a12d1de9d4"},
+    {file = "cachetools-5.3.0.tar.gz", hash = "sha256:13dfddc7b8df938c21a940dfa6557ce6e94a2f1cdfa58eb90c805721d58f2c14"},
 ]
 
 [[package]]
@@ -281,14 +281,14 @@ test = ["coveralls", "futures", "mock", "pytest (>=2.7.3)", "pytest-benchmark", 
 
 [[package]]
 name = "pyproject-api"
-version = "1.4.0"
+version = "1.5.0"
 description = "API to interact with the python pyproject.toml based projects"
 category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "pyproject_api-1.4.0-py3-none-any.whl", hash = "sha256:c34226297781efdd1ba4dfb74ce21076d9a8360e2125ea31803c1a02c76b2460"},
-    {file = "pyproject_api-1.4.0.tar.gz", hash = "sha256:ac85c1f82e0291dbae5a7739dbb9a990e11ee4034c9b5599ea714f07a24ecd71"},
+    {file = "pyproject_api-1.5.0-py3-none-any.whl", hash = "sha256:4c111277dfb96bcd562c6245428f27250b794bfe3e210b8714c4f893952f2c17"},
+    {file = "pyproject_api-1.5.0.tar.gz", hash = "sha256:0962df21f3e633b8ddb9567c011e6c1b3dcdfc31b7860c0ede7e24c5a1200fbe"},
 ]
 
 [package.dependencies]
@@ -340,14 +340,14 @@ files = [
 
 [[package]]
 name = "strawberry-graphql"
-version = "0.151.3"
+version = "0.155.0"
 description = "A library for creating GraphQL APIs"
 category = "main"
 optional = false
 python-versions = ">=3.7,<4.0"
 files = [
-    {file = "strawberry_graphql-0.151.3-py3-none-any.whl", hash = "sha256:ad15542a0fc1d4790e6d0d42ef702ab8a51b18c885b3261b35dec90d3408a334"},
-    {file = "strawberry_graphql-0.151.3.tar.gz", hash = "sha256:c8f4dc2b33776a7d99f22c9a04b1e2b5f88c26a13907c512d75ccb3e588ce0d3"},
+    {file = "strawberry_graphql-0.155.0-py3-none-any.whl", hash = "sha256:c37cb60b5677f343024a104eea3c7d6e5ac32dcf0f8980d1d309f960437bad50"},
+    {file = "strawberry_graphql-0.155.0.tar.gz", hash = "sha256:9045e8ac02a13b76401e8e451f43ff430af6e3713bb45ca41d43c41bdbe8e791"},
 ]
 
 [package.dependencies]
@@ -372,14 +372,14 @@ sanic = ["sanic (>=20.12.2)"]
 
 [[package]]
 name = "strawberry-graphql-django"
-version = "0.8.2"
+version = "0.9"
 description = "Strawberry GraphQL Django extension"
 category = "main"
 optional = false
 python-versions = ">=3.7,<4.0"
 files = [
-    {file = "strawberry_graphql_django-0.8.2-py3-none-any.whl", hash = "sha256:cc0717bd12b4b60af043cac4a7108c0ae4625c72a45dee99bd99e8952698a4c1"},
-    {file = "strawberry_graphql_django-0.8.2.tar.gz", hash = "sha256:c9ce9de5d3d7a2eacf01ed312d147390fde00a6646a64e2f32896003431ca205"},
+    {file = "strawberry_graphql_django-0.9-py3-none-any.whl", hash = "sha256:d82f65cb3813e49786b2246c0ecb3c7e6efef06f2a7d3a4bd7ce1cf2b6c20608"},
+    {file = "strawberry_graphql_django-0.9.tar.gz", hash = "sha256:148c5aa99ecf67f826e87205dd26be4f9cd34fc0e221fb9c811656d2bf69d441"},
 ]
 
 [package.dependencies]
@@ -412,31 +412,31 @@ files = [
 
 [[package]]
 name = "tox"
-version = "4.2.6"
+version = "4.3.5"
 description = "tox is a generic virtualenv management and test command line tool"
 category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "tox-4.2.6-py3-none-any.whl", hash = "sha256:fb79b3e4b788491949576a9c80c2d56419eac994567c3591e24bb2788b5901d0"},
-    {file = "tox-4.2.6.tar.gz", hash = "sha256:ecf224a4f3a318adcdd71aa8fe15ffd31f14afd6a9845a43ffd63950a7325538"},
+    {file = "tox-4.3.5-py3-none-any.whl", hash = "sha256:6dddc4c69718b65aacbef0921ffa8af065b0f63ff0b24ffc403477975853c918"},
+    {file = "tox-4.3.5.tar.gz", hash = "sha256:307993257d792a12a63ff86a0b67a71a5ab2d4a2cc12bbae947115224d4ac3fb"},
 ]
 
 [package.dependencies]
-cachetools = ">=5.2"
+cachetools = ">=5.2.1"
 chardet = ">=5.1"
 colorama = ">=0.4.6"
 filelock = ">=3.9"
-packaging = ">=22"
+packaging = ">=23"
 platformdirs = ">=2.6.2"
 pluggy = ">=1"
-pyproject-api = ">=1.2.1"
+pyproject-api = ">=1.5"
 tomli = {version = ">=2.0.1", markers = "python_version < \"3.11\""}
 virtualenv = ">=20.17.1"
 
 [package.extras]
-docs = ["furo (>=2022.12.7)", "sphinx (>=6)", "sphinx-argparse-cli (>=1.10)", "sphinx-autodoc-typehints (>=1.19.5)", "sphinx-copybutton (>=0.5.1)", "sphinx-inline-tabs (>=2022.1.2b11)", "sphinxcontrib-towncrier (>=0.2.1a0)", "towncrier (>=22.12)"]
-testing = ["build[virtualenv] (>=0.9)", "covdefaults (>=2.2.2)", "devpi-process (>=0.3)", "diff-cover (>=7.3)", "distlib (>=0.3.6)", "flaky (>=3.7)", "hatch-vcs (>=0.3)", "hatchling (>=1.12)", "psutil (>=5.9.4)", "pytest (>=7.2)", "pytest-cov (>=4)", "pytest-mock (>=3.10)", "pytest-xdist (>=3.1)", "re-assert (>=1.1)", "time-machine (>=2.8.2)"]
+docs = ["furo (>=2022.12.7)", "sphinx (>=6.1.3)", "sphinx-argparse-cli (>=1.11)", "sphinx-autodoc-typehints (>=1.20.1)", "sphinx-copybutton (>=0.5.1)", "sphinx-inline-tabs (>=2022.1.2b11)", "sphinxcontrib-towncrier (>=0.2.1a0)", "towncrier (>=22.12)"]
+testing = ["build[virtualenv] (>=0.9)", "covdefaults (>=2.2.2)", "devpi-process (>=0.3)", "diff-cover (>=7.3)", "distlib (>=0.3.6)", "flaky (>=3.7)", "hatch-vcs (>=0.3)", "hatchling (>=1.12.2)", "psutil (>=5.9.4)", "pytest (>=7.2)", "pytest-cov (>=4)", "pytest-mock (>=3.10)", "pytest-xdist (>=3.1)", "re-assert (>=1.1)", "time-machine (>=2.8.2)", "wheel (>=0.38.4)"]
 
 [[package]]
 name = "typing-extensions"

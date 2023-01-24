@@ -57,6 +57,40 @@ class TestDjangoStrawberry(TestCase):
             result = schema.execute_sync(query)
             self.assertFalse(result.errors)
 
+    def test_field_overwrites_circular_and_snake_case_converting(self):
+
+        with self.subTest("rejected"):
+            query = """
+    query something{
+      person2 {
+        id
+        age
+        childLimited {
+            childLimited {
+                age
+            }
+        }
+      }
+    }
+"""
+            result = schema.execute_sync(query)
+            self.assertTrue(result.errors)
+
+        with self.subTest("success"):
+            query = """
+    query something{
+      person2 {
+        id
+        age
+        childLimited {
+            age
+        }
+      }
+    }
+"""
+            result = schema.execute_sync(query)
+            self.assertFalse(result.errors)
+
     def test_generate_scheme(self):
         schema.introspect()
         print_schema(getattr(schema, "_schema", schema))

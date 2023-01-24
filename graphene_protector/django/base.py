@@ -32,7 +32,7 @@ class GetDefaultsMixin:
     def get_protector_path_ignore_pattern(self):
         return getattr(
             settings,
-            "GRAPHENE_PROTECTOR_PATH_INGORE",
+            "GRAPHENE_PROTECTOR_PATH_INGORE_PATTERN",
             self.protector_path_ignore_pattern,
         )
 

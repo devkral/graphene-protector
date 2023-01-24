@@ -20,6 +20,7 @@ This adds to django the following setting:
 -   GRAPHENE_PROTECTOR_DEPTH_LIMIT: max depth
 -   GRAPHENE_PROTECTOR_SELECTIONS_LIMIT: max selections
 -   GRAPHENE_PROTECTOR_COMPLEXITY_LIMIT: max (depth \* selections)
+-   GRAPHENE_PROTECTOR_PATH_INGORE_PATTERN: ignore fields in calculation (but still traverse them)
 
 Integrate with:
 

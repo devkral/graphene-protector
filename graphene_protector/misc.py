@@ -31,6 +31,10 @@ MISSING_LIMITS = Limits()
 DEFAULT_LIMITS = Limits(depth=20, selections=None, complexity=100)
 
 
+class EarlyStop(Exception):
+    pass
+
+
 class ResourceLimitReached(GraphQLError):
     pass
 
@@ -45,3 +49,6 @@ class SelectionsLimitReached(ResourceLimitReached):
 
 class ComplexityLimitReached(ResourceLimitReached):
     pass
+
+
+default_path_ignore_pattern = "page_info|edges/node$"

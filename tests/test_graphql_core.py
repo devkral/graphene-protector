@@ -11,7 +11,9 @@ from .graphql.schema import Query
 
 
 class Schema(GraphQLSchema, SchemaMixin):
-    default_limits = Limits(depth=2, selections=None, complexity=None)
+    protector_default_limits = Limits(
+        depth=2, selections=None, complexity=None
+    )
     auto_camelcase = False
 
 

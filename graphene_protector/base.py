@@ -18,12 +18,14 @@ from graphql.validation import ValidationContext, ValidationRule, validate
 
 from .misc import (
     DEFAULT_LIMITS,
+    EarlyStop,
     MISSING,
     MISSING_LIMITS,
     ComplexityLimitReached,
     DepthLimitReached,
     Limits,
     SelectionsLimitReached,
+    default_path_ignore_pattern,
 )
 
 
@@ -51,7 +53,9 @@ def to_snake_case(name):
     return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
 
 
-def merge_limits(old_limits, new_limits):
+def merge_limits(old_limits: Limits, new_limits: Limits):
+    # new_limits may have problems after the 0.10 migration
+    assert isinstance(new_limits, Limits), "invalid type %s" % type(new_limits)
     _limits = {}
     for field in fields(new_limits):
         value = getattr(new_limits, field.name)
@@ -80,6 +84,9 @@ def limits_for_field(field, old_limits, **kwargs) -> Tuple[Limits, Limits]:
     return merge_limits(old_limits, effective_limits), effective_limits
 
 
+_default_path_ignore_pattern = re.compile(default_path_ignore_pattern)
+
+
 def check_resource_usage(
     schema,
     node: Node,
@@ -87,10 +94,12 @@ def check_resource_usage(
     limits: Limits,
     on_error: Callable[[str, Node], None],
     auto_snakecase=False,
+    path_ignore_pattern: re.Pattern = _default_path_ignore_pattern,
     get_limits_for_field=limits_for_field,
     level_depth=0,
     level_complexity=0,
     _seen_limits=None,
+    _path="",
 ) -> Tuple[int, int, int]:
     if _seen_limits is None:
         _seen_limits = set()
@@ -124,6 +133,11 @@ def check_resource_usage(
         if hasattr(field, "types"):
             merged_limits = limits
             local_selections = 0
+
+            count_this_field = True
+            _npath = f"{_path}/{fieldname}"
+            if path_ignore_pattern.match(_npath):
+                count_this_field = False
             for field_type in field.types:
                 (
                     new_depth,
@@ -136,11 +150,15 @@ def check_resource_usage(
                     merged_limits,
                     on_error=on_error,
                     auto_snakecase=auto_snakecase,
+                    path_ignore_pattern=path_ignore_pattern,
                     get_limits_for_field=get_limits_for_field,
-                    level_depth=level_depth + 1,
+                    level_depth=level_depth + 1
+                    if count_this_field
+                    else level_depth,
                     # don't increase complexity, in unions it stays the same
                     level_complexity=level_complexity,
                     _seen_limits=_seen_limits,
+                    _path=_npath,
                 )
 
                 # we know here, that there are no individual sub_limits
@@ -181,6 +199,11 @@ def check_resource_usage(
                 fieldname=fieldname,
             )
             allow_reset = True
+            count_this_field = True
+            _npath = f"{_path}/{fieldname}"
+            if path_ignore_pattern.match(_npath):
+                count_this_field = False
+            # must be seperate from condition above
             if id(sub_limits) in _seen_limits:
                 allow_reset = False
             else:
@@ -200,14 +223,17 @@ def check_resource_usage(
                 merged_limits,
                 on_error=on_error,
                 auto_snakecase=auto_snakecase,
+                path_ignore_pattern=path_ignore_pattern,
                 get_limits_for_field=get_limits_for_field,
-                level_depth=level_depth + 1
+                # count_this_field will be casted in 1 for True
+                level_depth=level_depth + count_this_field
                 if sub_limits.depth is MISSING or not allow_reset
                 else 1,
-                level_complexity=level_complexity + 1
+                level_complexity=level_complexity + count_this_field
                 if sub_limits.complexity is MISSING or not allow_reset
                 else 1,
                 _seen_limits=_seen_limits,
+                _path=_npath,
             )
             # called per query, selection
             if (
@@ -230,7 +256,11 @@ def check_resource_usage(
             if sub_limits.selections is MISSING:
                 selections += local_selections
         else:
-            selections += 1
+            count_this_field = True
+            if path_ignore_pattern.match(_path):
+                count_this_field = False
+            # count_this_field will be casted in 1 for True
+            selections += count_this_field
 
         if limits.selections and selections > limits.selections:
             on_error(SelectionsLimitReached("Query selects too much", node))
@@ -239,6 +269,8 @@ def check_resource_usage(
 
 class LimitsValidationRule(ValidationRule):
     default_limits = None
+    path_ignore_pattern = None
+    full_validation = None
     # TODO: find out if auto_camelcase is set
     # But no priority as this code works also
     auto_snakecase = True
@@ -250,7 +282,21 @@ class LimitsValidationRule(ValidationRule):
         # are found to DEFAULT:LIMITS
         if not self.default_limits:
             self.default_limits = getattr(
-                schema, "get_default_limits", lambda: DEFAULT_LIMITS
+                schema, "get_protector_default_limits", lambda: DEFAULT_LIMITS
+            )()
+        if not self.path_ignore_pattern:
+            self.path_ignore_pattern = getattr(
+                schema,
+                "get_protector_path_ignore_pattern",
+                lambda: default_path_ignore_pattern,
+            )()
+            if not isinstance(self.path_ignore_pattern, re.Pattern):
+                self.path_ignore_pattern = re.compile(self.path_ignore_pattern)
+        if self.full_validation is None:
+            self.full_validation = getattr(
+                schema,
+                "get_protector_full_validation",
+                lambda: False,
             )()
 
     def enter(self, node, key, parent, path, ancestors):
@@ -286,20 +332,24 @@ class LimitsValidationRule(ValidationRule):
                     nfield = definition.get_field(fieldname)
                     return limits_for_field(nfield, old_limits)
 
-            check_resource_usage(
-                maintype,
-                definition,
-                self.context,
-                self.default_limits,
-                self.report_error,
-                get_limits_for_field=get_limits_for_field,
-                auto_snakecase=self.auto_snakecase,
-            )
+            try:
+                check_resource_usage(
+                    maintype,
+                    definition,
+                    self.context,
+                    self.default_limits,
+                    self.report_error,
+                    get_limits_for_field=get_limits_for_field,
+                    auto_snakecase=self.auto_snakecase,
+                    path_ignore_pattern=self.path_ignore_pattern,
+                )
+            except EarlyStop:
+                pass
 
-    if not hasattr(ValidationRule, "report_error"):
-
-        def report_error(self, error):
-            self.context.report_error(error)
+    def report_error(self, error):
+        self.context.report_error(error)
+        if not self.full_validation:
+            raise EarlyStop()
 
 
 _rules = [LimitsValidationRule]
@@ -323,7 +373,15 @@ def _decorate_limits_helper(superself, args, kwargs):
                 schema = getattr(superself, "_schema")
             else:
                 schema = superself
-            schema.get_default_limits = superself.get_default_limits
+            schema.get_protector_default_limits = (
+                superself.get_protector_default_limits
+            )
+            schema.get_protector_path_ignore_pattern = (
+                superself.get_protector_path_ignore_pattern
+            )
+            schema.get_protector_full_validation = (
+                superself.get_protector_full_validation
+            )
 
             return validate(
                 schema,
@@ -356,7 +414,9 @@ def decorate_limits_async(fn):
 
 
 class SchemaMixin:
-    default_limits = None
+    # better fail then omitting limits
+    protector_default_limits = None
+    protector_path_ignore_pattern = default_path_ignore_pattern
 
     def __init_subclass__(cls, **kwargs):
         if hasattr(cls, "execute_sync"):
@@ -371,8 +431,14 @@ class SchemaMixin:
         if hasattr(cls, "subscribe"):
             cls.subscribe = decorate_limits_async(cls.subscribe)
 
-    def get_default_limits(self):
+    def get_protector_default_limits(self):
         return merge_limits(
             DEFAULT_LIMITS,
-            self.default_limits,
+            self.protector_default_limits,
         )
+
+    def get_protector_path_ignore_pattern(self):
+        return self.protector_path_ignore_pattern
+
+    def get_protector_full_validation(self):
+        return False

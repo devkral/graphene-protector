@@ -24,7 +24,7 @@ class Query(graphene.ObjectType):
 class TestGlobal(unittest.TestCase):
     def test_defaults(self):
         schema = ProtectorSchema(query=Query)
-        dlimit = schema.get_default_limits()
+        dlimit = schema.get_protector_default_limits()
         for field in fields(dlimit):
             with self.subTest(f"Test default: {field.name}"):
                 limit = getattr(dlimit, field.name)

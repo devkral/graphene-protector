@@ -138,7 +138,7 @@ from graphene_protector import Limits, SchemaMixin, LimitsValidationRule
 from graphql.type.schema import Schema
 
 class CustomSchema(SchemaMixin, Schema):
-    default_limits = Limits(depth=20, selections=None, complexity=100)
+    protector_default_limits = Limits(depth=20, selections=None, complexity=100)
 
 schema = CustomSchema(
     query=Query,
@@ -156,7 +156,7 @@ from graphene_protector.strawberry import CustomGrapheneProtector
 from strawberry import Schema
 
 class CustomSchema(SchemaMixin, Schema):
-    default_limits = Limits(depth=20, selections=None, complexity=100)
+    protector_default_limits = Limits(depth=20, selections=None, complexity=100)
 
 schema = Schema(query=Query, extensions=[CustomGrapheneProtector()])
 result = schema.execute(query_string)
@@ -207,3 +207,7 @@ If you want some new or better algorithms integrated just make a PR
 # TODO
 
 -   test mutations
+-   document path_ignore_pattern
+    -   by default it reduces the count of relay connection structures from 2 to 1
+    -   path is seperated by /
+-   test path_ignore_pattern

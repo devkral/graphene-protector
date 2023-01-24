@@ -14,7 +14,9 @@ from .strawberry.schema import Query
 
 
 class CustomSchema(SchemaMixin, StrawberrySchema):
-    default_limits = Limits(depth=2, selections=None, complexity=None)
+    protector_default_limits = Limits(
+        depth=2, selections=None, complexity=None
+    )
 
 
 class TestStrawberry(unittest.IsolatedAsyncioTestCase):

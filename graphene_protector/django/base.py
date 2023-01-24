@@ -10,7 +10,7 @@ def _get_default_limit_from_settings(name):
 
 
 class GetDefaultsMixin:
-    def get_default_limits(self):
+    def get_protector_default_limits(self):
         return base.merge_limits(
             base.merge_limits(
                 base.DEFAULT_LIMITS,
@@ -26,5 +26,15 @@ class GetDefaultsMixin:
                     ),
                 ),
             ),
-            self.default_limits,
+            self.protector_default_limits,
         )
+
+    def get_protector_path_ignore_pattern(self):
+        return getattr(
+            settings,
+            "GRAPHENE_PROTECTOR_PATH_INGORE",
+            self.protector_path_ignore_pattern,
+        )
+
+    def get_protector_full_validation(self):
+        return settings.DEBUG

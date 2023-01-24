@@ -12,12 +12,14 @@ from graphql import print_schema
 
 from .django.schema_graphene import Query
 
-schema = ProtectorGrapheneSchema(query=Query, limits=Limits(selections=100))
+custom_schema = ProtectorGrapheneSchema(
+    query=Query, limits=Limits(selections=100)
+)
 
 
 class TestDjango(TestCase):
     def test_defaults(self):
-        limits = schema.get_default_limits()
+        limits = custom_schema.get_protector_default_limits()
         self.assertEqual(settings.GRAPHENE_PROTECTOR_DEPTH_LIMIT, limits.depth)
         self.assertNotEqual(
             settings.GRAPHENE_PROTECTOR_SELECTIONS_LIMIT, limits.selections
@@ -25,8 +27,9 @@ class TestDjango(TestCase):
 
     def test_field_overwrites(self):
         schema = graphene_settings.SCHEMA
+        limits = schema.get_protector_default_limits()
 
-        with self.subTest("rejected"):
+        with self.subTest("rejected", limits=limits):
             query = """
     query something{
       person {

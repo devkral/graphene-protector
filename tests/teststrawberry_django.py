@@ -15,7 +15,7 @@ schema = ProtectorGrapheneSchema(query=Query, limits=Limits(selections=100))
 
 class TestDjangoStrawberry(TestCase):
     def test_defaults(self):
-        limits = schema.get_default_limits()
+        limits = schema.get_protector_default_limits()
         self.assertEqual(settings.GRAPHENE_PROTECTOR_DEPTH_LIMIT, limits.depth)
         self.assertNotEqual(
             settings.GRAPHENE_PROTECTOR_SELECTIONS_LIMIT, limits.selections

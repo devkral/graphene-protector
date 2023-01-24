@@ -211,3 +211,4 @@ If you want some new or better algorithms integrated just make a PR
     -   by default it reduces the count of relay connection structures from 2 to 1
     -   path is seperated by /
 -   test path_ignore_pattern
+-   keep an eye on the performance impact of the new path regex checking

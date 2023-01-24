@@ -51,4 +51,7 @@ class ComplexityLimitReached(ResourceLimitReached):
     pass
 
 
-default_path_ignore_pattern = "page_info|edges/node$"
+# the worst problem for calculations is edges/node as it increases the
+# complexity and depth count by 2
+# the other parts does not affect the calculations by these magnitudes
+default_path_ignore_pattern = "edges/node$"

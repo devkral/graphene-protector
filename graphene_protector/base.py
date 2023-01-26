@@ -128,7 +128,7 @@ def check_resource_usage(
         if auto_snakecase and not hasattr(schema, fieldname):
             fieldname = to_snake_case(fieldname)
         if isinstance(field, FragmentSpreadNode):
-            field = validation_context.getFragment(field.name.value)
+            field = validation_context.get_fragment(field.name.value)
 
         if isinstance(field, (GraphQLUnionType, GraphQLInterfaceType)):
             merged_limits = limits
@@ -189,13 +189,19 @@ def check_resource_usage(
             try:
                 schema_field = getattr(schema, fieldname)
             except AttributeError:
-                schema_field = schema
-
-                # handle Fragment Spread nodes
-                if isinstance(schema_field, FragmentSpreadNode):
-                    schema_field = validation_context.getFragment(
-                        schema_field.name.value
-                    )
+                _name = None
+                if hasattr(field, "name"):
+                    _name = field.name
+                    if hasattr(_name, "value"):
+                        _name = _name.value
+                if (
+                    hasattr(schema, "fields")
+                    and not isinstance(schema, GraphQLInterfaceType)
+                    and _name
+                ):
+                    schema_field = schema.fields[_name]
+                else:
+                    schema_field = schema
             merged_limits, sub_limits = get_limits_for_field(
                 schema_field,
                 limits,
@@ -208,10 +214,11 @@ def check_resource_usage(
             if path_ignore_pattern.match(_npath):
                 count_this_field = False
             # must be seperate from condition above
-            if id(sub_limits) in _seen_limits:
-                allow_reset = False
-            else:
-                _seen_limits.add(id(sub_limits))
+            if sub_limits is not MISSING:
+                if id(sub_limits) in _seen_limits:
+                    allow_reset = False
+                else:
+                    _seen_limits.add(id(sub_limits))
             if isinstance(
                 schema_field,
                 (GraphQLUnionType, GraphQLInterfaceType, GraphQLObjectType),

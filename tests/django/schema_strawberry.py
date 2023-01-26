@@ -1,9 +1,11 @@
 from __future__ import annotations
+from typing import Iterable
 
 from graphene_protector import Limits
 from graphene_protector.django.strawberry import Schema as ProtectorSchema
 
 import strawberry
+from strawberry_django_plus import relay
 
 
 @strawberry.type
@@ -36,6 +38,11 @@ class Query:
     @strawberry.field
     def person2(root, info) -> Person:
         return Person(id=200, depth=10, age=34)
+
+    @Limits(depth=3)
+    @relay.connection
+    def persons(self) -> Iterable[Person]:
+        return [Person(id=200, depth=10, age=34) for i in range(2000)]
 
 
 schema = ProtectorSchema(query=Query)

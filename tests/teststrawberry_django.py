@@ -21,6 +21,21 @@ class TestDjangoStrawberry(TestCase):
             settings.GRAPHENE_PROTECTOR_SELECTIONS_LIMIT, limits.selections
         )
 
+    def test_relay_path_ignore(self):
+        query = """
+    query something{
+      persons {
+        edges {
+            node {
+                id
+            }
+        }
+      }
+    }
+"""
+        result = schema.execute_sync(query)
+        self.assertFalse(result.errors)
+
     def test_field_overwrites(self):
 
         with self.subTest("rejected"):

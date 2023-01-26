@@ -149,19 +149,21 @@ self.assertFalse(validate(schema, query_ast, [LimitsValidationRule]))
 
 ```
 
-strawberry extension variant with mixin
+strawberry variant with mixin
 
 ```python 3
-from graphene_protector import Limits, SchemaMixin
-from graphene_protector.strawberry import CustomGrapheneProtector
+from graphene_protector import Limits, SchemaMixin, default_path_ignore_pattern
 from strawberry import Schema
 
 class CustomSchema(SchemaMixin, Schema):
     protector_default_limits = Limits(depth=20, selections=None, complexity=100)
+    protector_path_ignore_pattern = default_path_ignore_pattern
 
-schema = Schema(query=Query, extensions=[CustomGrapheneProtector()])
+schema = CustomSchema(query=Query)
 result = schema.execute(query_string)
 ```
+
+Note: for the mixin method all variables are prefixed in schema with `protector_`. Internally the `get_protector_` methods are used and mapped on the validation context
 
 ## Limits
 
@@ -195,6 +197,17 @@ schema = Schema(query=Query, limits=Limits(depth=20, selections=None, complexity
 result = schema.execute(query_string, check_limits=False)
 ```
 
+# Path ignoring
+
+This is a feature for ignoring some path parts in calculation but still traversing them.
+It is useful for e.g. relay which inflates the depth significant and can cause problems with complexity
+Currently it is set to `edges/node$` which reduces the depth of connections by one
+
+Other examples are:
+
+-   `node$|id$` for ignoring id fields in selection/complexity count and reducing the depth by 1 when seeing a node field
+-   `page_info|pageInfo` for ignoring page info in calculation (Note: you need only one)
+
 # Development
 
 I am open for new ideas.
@@ -207,10 +220,5 @@ If you want some new or better algorithms integrated just make a PR
 
 # TODO
 
--   test mutations
--   document path_ignore_pattern
-    -   by default it reduces the count of relay connection structures from 2 to 1
-    -   path is seperated by /
-    -   document how to ignore all relay connection stuff
 -   test path_ignore_pattern
 -   keep an eye on the performance impact of the new path regex checking

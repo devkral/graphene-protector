@@ -32,7 +32,6 @@ strawberry-graphql-django = { version = "*", optional=true }
 [tool.poetry.group.test]
 optional = true
 
-
 [tool.poetry.group.test.dependencies]
 tox = "*"
 
@@ -43,6 +42,7 @@ graphene-django = { version = ">=3" }
 django = { version = ">=4.1"}
 strawberry-graphql = { version = ">=0.92"  }
 strawberry-graphql-django = { version = "*" }
+strawberry-django-plus = "*"
 
 
 [tool.poetry.extras]

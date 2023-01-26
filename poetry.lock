@@ -339,15 +339,37 @@ files = [
 ]
 
 [[package]]
+name = "strawberry-django-plus"
+version = "2.0.0"
+description = "Enhanced Strawberry GraphQL integration with Django"
+category = "dev"
+optional = false
+python-versions = ">=3.8,<4.0"
+files = [
+    {file = "strawberry_django_plus-2.0.0-py3-none-any.whl", hash = "sha256:9f210e4dab5fe2e6fd81a423b518adf57c3dfdf2209b6df9dde641b750a4a097"},
+    {file = "strawberry_django_plus-2.0.0.tar.gz", hash = "sha256:3981f7e7e8f0546eb48816511620a43472816d975d2fd13ffb0e65441b428e82"},
+]
+
+[package.dependencies]
+django = ">=3.2"
+strawberry-graphql = ">=0.140.3"
+strawberry-graphql-django = ">=0.8"
+typing-extensions = ">=4.2.0"
+
+[package.extras]
+debug-toolbar = ["django-debug-toolbar (>=3.4)"]
+enum = ["django-choices-field (>=2.0)"]
+
+[[package]]
 name = "strawberry-graphql"
-version = "0.155.0"
+version = "0.155.2"
 description = "A library for creating GraphQL APIs"
 category = "main"
 optional = false
 python-versions = ">=3.7,<4.0"
 files = [
-    {file = "strawberry_graphql-0.155.0-py3-none-any.whl", hash = "sha256:c37cb60b5677f343024a104eea3c7d6e5ac32dcf0f8980d1d309f960437bad50"},
-    {file = "strawberry_graphql-0.155.0.tar.gz", hash = "sha256:9045e8ac02a13b76401e8e451f43ff430af6e3713bb45ca41d43c41bdbe8e791"},
+    {file = "strawberry_graphql-0.155.2-py3-none-any.whl", hash = "sha256:b92bc7ee52348cd983781a7742c408567319d569e521ea568831ca3f61ca73b2"},
+    {file = "strawberry_graphql-0.155.2.tar.gz", hash = "sha256:2589e8bcd65e724532e960a14af8c4efac621952e208c9bd36f97873401a2f44"},
 ]
 
 [package.dependencies]
@@ -412,14 +434,14 @@ files = [
 
 [[package]]
 name = "tox"
-version = "4.3.5"
+version = "4.4.2"
 description = "tox is a generic virtualenv management and test command line tool"
 category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "tox-4.3.5-py3-none-any.whl", hash = "sha256:6dddc4c69718b65aacbef0921ffa8af065b0f63ff0b24ffc403477975853c918"},
-    {file = "tox-4.3.5.tar.gz", hash = "sha256:307993257d792a12a63ff86a0b67a71a5ab2d4a2cc12bbae947115224d4ac3fb"},
+    {file = "tox-4.4.2-py3-none-any.whl", hash = "sha256:258895ba5de919490c03ef97467c4c8c42954537dfd96ae72cc2fb63dac67cf0"},
+    {file = "tox-4.4.2.tar.gz", hash = "sha256:3d8a8dd8a5afdc0d37af3e2b4959e427fe22530d0aa599baf0120e144b3defa3"},
 ]
 
 [package.dependencies]
@@ -489,4 +511,4 @@ optional = ["graphene", "graphene-django", "strawberry-graphql", "strawberry-gra
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8,<4"
-content-hash = "8b91cff0fc6267c2e99a40bb4032852b7905ae53fb7019b166729b60af7c51a3"
+content-hash = "4c6a6b50f4b847af102b2949cf661de33d70c2647e1d44455619210153e895df"

@@ -2,6 +2,7 @@ import re
 from dataclasses import fields, replace
 from functools import wraps
 from typing import Callable, List, Tuple
+from graphql import GraphQLInterfaceType, GraphQLObjectType, GraphQLUnionType
 
 from graphql.error import GraphQLError
 from graphql.execution import ExecutionResult
@@ -23,8 +24,8 @@ from .misc import (
     MISSING_LIMITS,
     ComplexityLimitReached,
     DepthLimitReached,
-    Limits,
     SelectionsLimitReached,
+    Limits,
     default_path_ignore_pattern,
 )
 
@@ -92,7 +93,7 @@ def check_resource_usage(
     node: Node,
     validation_context: ValidationContext,
     limits: Limits,
-    on_error: Callable[[str, Node], None],
+    on_error: Callable[[GraphQLError], None],
     auto_snakecase=False,
     path_ignore_pattern: re.Pattern = _default_path_ignore_pattern,
     get_limits_for_field=limits_for_field,
@@ -129,8 +130,7 @@ def check_resource_usage(
         if isinstance(field, FragmentSpreadNode):
             field = validation_context.getFragment(field.name.value)
 
-        # union
-        if hasattr(field, "types"):
+        if isinstance(field, (GraphQLUnionType, GraphQLInterfaceType)):
             merged_limits = limits
             local_selections = 0
 
@@ -138,7 +138,9 @@ def check_resource_usage(
             _npath = f"{_path}/{fieldname}"
             if path_ignore_pattern.match(_npath):
                 count_this_field = False
-            for field_type in field.types:
+            for field_type in validation_context.schema.get_possible_types(
+                field
+            ):
                 (
                     new_depth,
                     new_depth_complexity,
@@ -188,9 +190,11 @@ def check_resource_usage(
                 schema_field = getattr(schema, fieldname)
             except AttributeError:
                 schema_field = schema
-                if hasattr(schema_field, "fields"):
-                    schema_field = follow_of_type(
-                        schema_field.fields[field.name.value]
+
+                # handle Fragment Spread nodes
+                if isinstance(schema_field, FragmentSpreadNode):
+                    schema_field = validation_context.getFragment(
+                        schema_field.name.value
                     )
             merged_limits, sub_limits = get_limits_for_field(
                 schema_field,
@@ -208,7 +212,10 @@ def check_resource_usage(
                 allow_reset = False
             else:
                 _seen_limits.add(id(sub_limits))
-            if hasattr(schema_field, "types"):
+            if isinstance(
+                schema_field,
+                (GraphQLUnionType, GraphQLInterfaceType, GraphQLObjectType),
+            ):
                 sub_field_type = schema_field
             else:
                 sub_field_type = follow_of_type(schema_field.type)

@@ -22,19 +22,38 @@ class TestDjangoStrawberry(TestCase):
         )
 
     def test_relay_path_ignore(self):
-        query = """
-    query something{
-      persons {
-        edges {
-            node {
-                id
+
+        with self.subTest("rejected"):
+            query = """
+        query something{
+        persons {
+            edges {
+                node {
+                    child {
+                        id
+                    }
+                }
             }
         }
-      }
-    }
-"""
-        result = schema.execute_sync(query)
-        self.assertFalse(result.errors)
+        }
+    """
+            result = schema.execute_sync(query)
+            self.assertTrue(result.errors)
+
+        with self.subTest("accepted"):
+            query = """
+        query something{
+        persons {
+            edges {
+                node {
+                    id
+                }
+            }
+        }
+        }
+    """
+            result = schema.execute_sync(query)
+            self.assertFalse(result.errors)
 
     def test_field_overwrites(self):
 

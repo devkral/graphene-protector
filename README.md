@@ -208,6 +208,22 @@ Other examples are:
 -   `node$|id$` for ignoring id fields in selection/complexity count and reducing the depth by 1 when seeing a node field
 -   `page_info|pageInfo` for ignoring page info in calculation (Note: you need only one)
 
+Note: items prefixed with `__` (internal names) are always ignored and not traversed
+
+# full validation
+
+On the validation rule the validation is stopped by default when an error is found
+This default can be overwritten and it is modified for the django code pathes.
+Whenever DEBUG is active a full validation happens, otherwise the shortcut is used.
+See the source-code how to change your schema to have a custom hook for deciding if a full validation is done.
+In addition the `path_ignore_pattern` and `limits` attributes can be also changed dynamically.
+
+# hooks
+
+The validation rule uses some `protector_` prefixed methods from the schema.
+With this you can customize the default behaviour.
+It is used by the django mixin to read the settings (see django) and to react on DEBUG with full_validation
+
 # Development
 
 I am open for new ideas.
@@ -220,5 +236,4 @@ If you want some new or better algorithms integrated just make a PR
 
 # TODO
 
--   test path_ignore_pattern
 -   keep an eye on the performance impact of the new path regex checking

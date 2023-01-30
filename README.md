@@ -201,7 +201,9 @@ result = schema.execute(query_string, check_limits=False)
 
 This is a feature for ignoring some path parts in calculation but still traversing them.
 It is useful for e.g. relay which inflates the depth significant and can cause problems with complexity
-Currently it is set to `edges/node$` which reduces the depth of connections by one
+Currently it is set to `edges/node$` which reduces the depth of connections by one.
+If you want to ignore all children on a path then remove $ but be warned: it can be a long path and it is still traversed.
+The path the regex matches agains is composed like this: `fieldname/subfields/...`.
 
 Other examples are:
 
@@ -233,7 +235,9 @@ If you want some new or better algorithms integrated just make a PR
 
 -   secure-graphene: lacks django integration, some features and has a not so easy findable name.
     But I accept: it is the "not invented here"-syndrome
+-
 
 # TODO
 
+-   stop when an open path regex is used. May append an invalid char and check if it is still ignoring
 -   keep an eye on the performance impact of the new path regex checking

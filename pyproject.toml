@@ -39,7 +39,7 @@ tox = "*"
 tox = "*"
 graphene = { version = ">=3"}
 graphene-django = { version = ">=3" }
-django = { version = ">=4.1"}
+django = { version = ">=4.2"}
 strawberry-graphql = { version = ">=0.92"  }
 strawberry-graphql-django = { version = "*" }
 strawberry-django-plus = "*"

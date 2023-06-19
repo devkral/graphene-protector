@@ -2,8 +2,8 @@ import re
 from dataclasses import fields, replace
 from functools import wraps
 from typing import Callable, List, Tuple
-from graphql import GraphQLInterfaceType, GraphQLObjectType, GraphQLUnionType
 
+from graphql import GraphQLInterfaceType, GraphQLObjectType, GraphQLUnionType
 from graphql.error import GraphQLError
 from graphql.execution import ExecutionResult
 from graphql.language import (
@@ -19,13 +19,13 @@ from graphql.validation import ValidationContext, ValidationRule, validate
 
 from .misc import (
     DEFAULT_LIMITS,
-    EarlyStop,
     MISSING,
     MISSING_LIMITS,
     ComplexityLimitReached,
     DepthLimitReached,
-    SelectionsLimitReached,
+    EarlyStop,
     Limits,
+    SelectionsLimitReached,
     default_path_ignore_pattern,
 )
 
@@ -42,9 +42,7 @@ def to_camel_case(snake_str):
     components = snake_str.split("_")
     # We capitalize the first letter of each component except the first one
     # with the 'capitalize' method and join them together.
-    return components[0] + "".join(
-        x.capitalize() if x else "_" for x in components[1:]
-    )
+    return components[0] + "".join(x.capitalize() if x else "_" for x in components[1:])
 
 
 # From this response in Stackoverflow
@@ -60,7 +58,7 @@ def merge_limits(old_limits: Limits, new_limits: Limits):
     _limits = {}
     for field in fields(new_limits):
         value = getattr(new_limits, field.name)
-        if value != MISSING:
+        if value is not MISSING:
             _limits[field.name] = value
     return replace(old_limits, **_limits)
 
@@ -108,9 +106,7 @@ def check_resource_usage(
     selections = 0
     max_level_depth = level_depth
     max_level_complexity = level_complexity
-    assert (
-        limits.depth is not MISSING
-    ), "missing should be already resolved here"
+    assert limits.depth is not MISSING, "missing should be already resolved here"
     if limits.depth and max_level_depth > limits.depth:
         on_error(
             DepthLimitReached(
@@ -138,9 +134,7 @@ def check_resource_usage(
             _npath = f"{_path}/{fieldname}"
             if path_ignore_pattern.match(_npath):
                 count_this_field = False
-            for field_type in validation_context.schema.get_possible_types(
-                field
-            ):
+            for field_type in validation_context.schema.get_possible_types(field):
                 (
                     new_depth,
                     new_depth_complexity,
@@ -154,9 +148,7 @@ def check_resource_usage(
                     auto_snakecase=auto_snakecase,
                     path_ignore_pattern=path_ignore_pattern,
                     get_limits_for_field=get_limits_for_field,
-                    level_depth=level_depth + 1
-                    if count_this_field
-                    else level_depth,
+                    level_depth=level_depth + 1 if count_this_field else level_depth,
                     # don't increase complexity, in unions it stays the same
                     level_complexity=level_complexity,
                     _seen_limits=_seen_limits,
@@ -168,13 +160,10 @@ def check_resource_usage(
                 # called per query, selection
                 if (
                     merged_limits.complexity
-                    and (new_depth_complexity - level_complexity)
-                    * local2_selections
+                    and (new_depth_complexity - level_complexity) * local2_selections
                     > merged_limits.complexity
                 ):
-                    on_error(
-                        ComplexityLimitReached("Query is too complex", node)
-                    )
+                    on_error(ComplexityLimitReached("Query is too complex", node))
                 # find max of selections for unions
                 if local2_selections > local_selections:
                     local_selections = local2_selections
@@ -335,9 +324,7 @@ class LimitsValidationRule(ValidationRule):
                 ):
                     name = follow_of_type(parent).name
                     definition = (
-                        schema._strawberry_schema.schema_converter.type_map[
-                            name
-                        ]
+                        schema._strawberry_schema.schema_converter.type_map[name]
                     ).definition
                     # e.g. union
                     if not hasattr(definition, "get_field"):
@@ -387,9 +374,7 @@ def _decorate_limits_helper(superself, args, kwargs):
                 schema = getattr(superself, "_schema")
             else:
                 schema = superself
-            schema.get_protector_default_limits = (
-                superself.get_protector_default_limits
-            )
+            schema.get_protector_default_limits = superself.get_protector_default_limits
             schema.get_protector_path_ignore_pattern = (
                 superself.get_protector_path_ignore_pattern
             )

@@ -1,15 +1,15 @@
 from typing import Iterable
 
 import strawberry
-from strawberry import relay
+from strawberry_django_plus import gql
 
 from graphene_protector import Limits
 from graphene_protector.django.strawberry import Schema as ProtectorSchema
 
 
 @strawberry.type
-class Person(relay.Node):
-    id: relay.NodeID[strawberry.ID]
+class Person(gql.Node):
+    id: gql.relay.NodeID[gql.ID]
     age: int
     depth: int
 
@@ -39,7 +39,7 @@ class Query:
         return Person(id=200, depth=10, age=34)
 
     @Limits(depth=3)
-    @relay.connection(relay.ListConnection[Person])
+    @gql.django.connection(gql.relay.ListConnection[Person])
     def persons(self) -> Iterable[Person]:
         return [Person(id=200, depth=10, age=34) for i in range(2000)]
 

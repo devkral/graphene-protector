@@ -1,11 +1,15 @@
 import sys
 from dataclasses import dataclass
 from typing import Union
+
 from graphql.error import GraphQLError
 
 
 class MISSING:
-    """custom MISSING sentinel for merge logic"""
+    """
+    custom MISSING sentinel as dataclass MISSING has different logic and
+    cannot be used as Sentinel like here
+    """
 
 
 _deco_options = {}

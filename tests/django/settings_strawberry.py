@@ -5,7 +5,7 @@ INSTALLED_APPS = [
     "strawberry.django",
     # requirement of strawberry-django-plus, issue #248
     "django.contrib.contenttypes",
-    #
+    # requirement of strawberry-django-plus, issue #249
     "django.contrib.auth",
 ]
 GRAPHENE_PROTECTOR_DEPTH_LIMIT = 2

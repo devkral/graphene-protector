@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Iterable
 
 import strawberry
@@ -14,14 +16,14 @@ class Person(relay.Node):
     depth: int
 
     @strawberry.field
-    def child(self, info) -> "Person":
+    def child(self, info) -> Person:
         if self.depth == 0:
             return None
         return Person(id=self.id + 1, depth=self.depth - 1, age=34)
 
     @Limits(depth=1)
     @strawberry.field
-    def child_limited(self, info) -> "Person":
+    def child_limited(self, info) -> Person:
         if self.depth == 0:
             return None
         return Person(id=self.id + 1, depth=self.depth - 1, age=34)

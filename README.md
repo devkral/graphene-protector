@@ -1,3 +1,10 @@
+# Demonstration of field resolve bug
+
+```
+poetry install
+env PYTHONPATH="./" DJANGO_SETTINGS_MODULE=tests.django.settings_strawberry poetry run django-admin test -p "teststrawberry*.py"
+```
+
 # What does this project solve?
 
 It provides protection against malicious grapqhl requests (resource exhaustion).

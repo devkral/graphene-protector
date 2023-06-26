@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "graphene-protector"
-version = "0.10.1"
+version = "0.11.0"
 description = "Protects graphene, graphql or strawberry against malicious queries"
 authors = ["alex <devkral@web.de>"]
 license = "MIT"

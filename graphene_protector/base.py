@@ -306,7 +306,9 @@ class LimitsValidationRule(ValidationRule):
         # are found to DEFAULT:LIMITS
         if not self.default_limits:
             self.default_limits = getattr(
-                schema, "get_protector_default_limits", lambda: DEFAULT_LIMITS
+                schema,
+                "get_protector_default_limits",
+                lambda: DEFAULT_LIMITS,
             )()
         if not self.path_ignore_pattern:
             self.path_ignore_pattern = getattr(
@@ -369,20 +371,21 @@ class LimitsValidationRule(ValidationRule):
                     nfield = definition.get_field(fieldname)
                     return limits_for_field(nfield, old_limits)
 
-            try:
-                check_resource_usage(
-                    maintype,
-                    definition,
-                    self.context,
-                    self.default_limits,
-                    self.report_error,
-                    get_limits_for_field=get_limits_for_field,
-                    auto_snakecase=self.auto_snakecase,
-                    camelcase_path=self.camelcase_path,
-                    path_ignore_pattern=self.path_ignore_pattern,
-                )
-            except EarlyStop:
-                pass
+            if getattr(self, "protector_on", True):
+                try:
+                    check_resource_usage(
+                        maintype,
+                        definition,
+                        self.context,
+                        self.default_limits,
+                        self.report_error,
+                        get_limits_for_field=get_limits_for_field,
+                        auto_snakecase=self.auto_snakecase,
+                        camelcase_path=self.camelcase_path,
+                        path_ignore_pattern=self.path_ignore_pattern,
+                    )
+                except EarlyStop:
+                    pass
 
     def report_error(self, error):
         self.context.report_error(error)
@@ -397,7 +400,7 @@ def _decorate_limits_helper(
     superself, args, kwargs, protector_per_operation_validation
 ):
     check_limits = kwargs.pop("check_limits", True)
-    if check_limits and (kwargs.get("query") or len(args)):
+    if kwargs.get("query") or len(args):
         try:
             query = kwargs.get("query", args[0])
         except IndexError:
@@ -415,12 +418,15 @@ def _decorate_limits_helper(
                 schema = superself
             # required for protector_per_operation_validation = False
             superself.protector_decorate_graphql_schema(schema)
-            if protector_per_operation_validation:
-                return validate(
-                    schema,
-                    document_ast,
-                    _rules,
-                )
+            if check_limits:
+                if protector_per_operation_validation:
+                    return validate(
+                        schema,
+                        document_ast,
+                        _rules,
+                    )
+            else:
+                schema.protector_on = False
     return _empty
 
 
@@ -488,6 +494,7 @@ class SchemaMixin:
             "get_protector_auto_snakecase",
             "get_protector_camelcase_path",
         ):
+            schema.protector_on = True
             setattr(schema, funcname, getattr(self, funcname))
 
     def get_protector_default_limits(self):

@@ -197,8 +197,6 @@ schema = Schema(query=Query, limits=Limits(depth=20, selections=None, complexity
 result = schema.execute(query_string, check_limits=False)
 ```
 
-This includes all decorations and makes graphene_protector a noop.
-
 Usefull for debugging or working around errors
 
 # Path ignoring

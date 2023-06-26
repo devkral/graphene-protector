@@ -29,6 +29,9 @@ from .misc import (
     default_path_ignore_pattern,
 )
 
+_default_path_ignore_pattern = re.compile(default_path_ignore_pattern)
+_empty = frozenset()
+
 
 def follow_of_type(field: GraphQLType) -> GraphQLType:
     while hasattr(field, "of_type"):
@@ -85,9 +88,6 @@ def limits_for_field(field, old_limits, **kwargs) -> Tuple[Limits, Limits]:
     return merge_limits(old_limits, effective_limits), effective_limits
 
 
-_default_path_ignore_pattern = re.compile(default_path_ignore_pattern)
-
-
 def check_resource_usage(
     schema,
     node: Node,
@@ -95,6 +95,7 @@ def check_resource_usage(
     limits: Limits,
     on_error: Callable[[GraphQLError], None],
     auto_snakecase=False,
+    camelcase_path=True,
     path_ignore_pattern: re.Pattern = _default_path_ignore_pattern,
     get_limits_for_field=limits_for_field,
     level_depth=0,
@@ -135,7 +136,10 @@ def check_resource_usage(
             local_selections = 0
 
             field_contributes_to_score = True
-            _npath = f"{_path}/{fieldname}"
+            _npath = "{}/{}".format(
+                _path,
+                to_camel_case(fieldname) if camelcase_path else fieldname,
+            )
             if path_ignore_pattern.match(_npath):
                 field_contributes_to_score = False
             for field_type in validation_context.schema.get_possible_types(
@@ -152,6 +156,7 @@ def check_resource_usage(
                     merged_limits,
                     on_error=on_error,
                     auto_snakecase=auto_snakecase,
+                    camelcase_path=camelcase_path,
                     path_ignore_pattern=path_ignore_pattern,
                     get_limits_for_field=get_limits_for_field,
                     level_depth=level_depth + 1
@@ -210,7 +215,10 @@ def check_resource_usage(
             )
             allow_reset = True
             field_contributes_to_score = True
-            _npath = f"{_path}/{fieldname}"
+            _npath = "{}/{}".format(
+                _path,
+                to_camel_case(fieldname) if camelcase_path else fieldname,
+            )
             if path_ignore_pattern.match(_npath):
                 field_contributes_to_score = False
             # must be seperate from condition above
@@ -237,6 +245,7 @@ def check_resource_usage(
                 merged_limits,
                 on_error=on_error,
                 auto_snakecase=auto_snakecase,
+                camelcase_path=camelcase_path,
                 path_ignore_pattern=path_ignore_pattern,
                 get_limits_for_field=get_limits_for_field,
                 # field_contributes_to_score will be casted to 1 for True
@@ -287,7 +296,8 @@ class LimitsValidationRule(ValidationRule):
     full_validation = None
     # TODO: find out if auto_camelcase is set
     # But no priority as this code works also
-    auto_snakecase = True
+    auto_snakecase = None
+    camelcase_path = None
 
     def __init__(self, context):
         super().__init__(context)
@@ -311,6 +321,19 @@ class LimitsValidationRule(ValidationRule):
                 schema,
                 "get_protector_full_validation",
                 lambda: False,
+            )()
+        if self.auto_snakecase is None:
+            self.auto_snakecase = getattr(
+                schema,
+                "get_protector_auto_snakecase",
+                lambda: True,
+            )()
+
+        if self.camelcase_path is None:
+            self.camelcase_path = getattr(
+                schema,
+                "get_protector_camelcase_path",
+                lambda: self.auto_snakecase,
             )()
 
     def enter(self, node, key, parent, path, ancestors):
@@ -355,6 +378,7 @@ class LimitsValidationRule(ValidationRule):
                     self.report_error,
                     get_limits_for_field=get_limits_for_field,
                     auto_snakecase=self.auto_snakecase,
+                    camelcase_path=self.camelcase_path,
                     path_ignore_pattern=self.path_ignore_pattern,
                 )
             except EarlyStop:
@@ -369,7 +393,9 @@ class LimitsValidationRule(ValidationRule):
 _rules = [LimitsValidationRule]
 
 
-def _decorate_limits_helper(superself, args, kwargs):
+def _decorate_limits_helper(
+    superself, args, kwargs, protector_per_operation_validation
+):
     check_limits = kwargs.pop("check_limits", True)
     if check_limits and (kwargs.get("query") or len(args)):
         try:
@@ -387,28 +413,23 @@ def _decorate_limits_helper(superself, args, kwargs):
                 schema = getattr(superself, "_schema")
             else:
                 schema = superself
-            schema.get_protector_default_limits = (
-                superself.get_protector_default_limits
-            )
-            schema.get_protector_path_ignore_pattern = (
-                superself.get_protector_path_ignore_pattern
-            )
-            schema.get_protector_full_validation = (
-                superself.get_protector_full_validation
-            )
-
-            return validate(
-                schema,
-                document_ast,
-                _rules,
-            )
-    return []
+            # required for protector_per_operation_validation = False
+            superself.protector_decorate_graphql_schema(schema)
+            if protector_per_operation_validation:
+                return validate(
+                    schema,
+                    document_ast,
+                    _rules,
+                )
+    return _empty
 
 
-def decorate_limits(fn):
+def decorate_limits(fn, protector_per_operation_validation):
     @wraps(fn)
     def wrapper(superself, *args, **kwargs):
-        validation_errors = _decorate_limits_helper(superself, args, kwargs)
+        validation_errors = _decorate_limits_helper(
+            superself, args, kwargs, protector_per_operation_validation
+        )
         if validation_errors:
             return ExecutionResult(errors=validation_errors)
         return fn(superself, *args, **kwargs)
@@ -416,10 +437,12 @@ def decorate_limits(fn):
     return wrapper
 
 
-def decorate_limits_async(fn):
+def decorate_limits_async(fn, protector_per_operation_validation):
     @wraps(fn)
     async def wrapper(superself, *args, **kwargs):
-        validation_errors = _decorate_limits_helper(superself, args, kwargs)
+        validation_errors = _decorate_limits_helper(
+            superself, args, kwargs, protector_per_operation_validation
+        )
         if validation_errors:
             return ExecutionResult(errors=validation_errors)
         return await fn(superself, *args, **kwargs)
@@ -432,18 +455,40 @@ class SchemaMixin:
     protector_default_limits = None
     protector_path_ignore_pattern = default_path_ignore_pattern
 
-    def __init_subclass__(cls, **kwargs):
+    def __init_subclass__(
+        cls, protector_per_operation_validation=True, **kwargs
+    ):
         if hasattr(cls, "execute_sync"):
-            cls.execute_sync = decorate_limits(cls.execute_sync)
+            cls.execute_sync = decorate_limits(
+                cls.execute_sync, protector_per_operation_validation
+            )
             if hasattr(cls, "execute"):
-                cls.execute = decorate_limits_async(cls.execute)
+                cls.execute = decorate_limits_async(
+                    cls.execute, protector_per_operation_validation
+                )
         else:
             if hasattr(cls, "execute"):
-                cls.execute = decorate_limits(cls.execute)
+                cls.execute = decorate_limits(
+                    cls.execute, protector_per_operation_validation
+                )
             if hasattr(cls, "execute_async"):
-                cls.execute_async = decorate_limits_async(cls.execute_async)
+                cls.execute_async = decorate_limits_async(
+                    cls.execute_async, protector_per_operation_validation
+                )
         if hasattr(cls, "subscribe"):
-            cls.subscribe = decorate_limits_async(cls.subscribe)
+            cls.subscribe = decorate_limits_async(
+                cls.subscribe, protector_per_operation_validation
+            )
+
+    def protector_decorate_graphql_schema(self, schema):
+        for funcname in (
+            "get_protector_default_limits",
+            "get_protector_path_ignore_pattern",
+            "get_protector_full_validation",
+            "get_protector_auto_snakecase",
+            "get_protector_camelcase_path",
+        ):
+            setattr(schema, funcname, getattr(self, funcname))
 
     def get_protector_default_limits(self):
         return merge_limits(
@@ -456,3 +501,9 @@ class SchemaMixin:
 
     def get_protector_full_validation(self):
         return False
+
+    def get_protector_auto_snakecase(self):
+        return True
+
+    def get_protector_camelcase_path(self):
+        return self.get_protector_auto_snakecase()

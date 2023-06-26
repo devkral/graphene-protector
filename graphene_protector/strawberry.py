@@ -1,4 +1,5 @@
 from typing import Optional
+
 from strawberry import Schema as StrawberrySchema
 from strawberry.extensions import AddValidationRules
 
@@ -33,19 +34,25 @@ class CustomGrapheneProtector(AddValidationRules):
         limits: Optional[base.Limits] = None,
         path_ignore_pattern: Optional[str] = None,
         full_validation: Optional[bool] = None,
+        auto_snakecase: Optional[bool] = None,
+        camelcase_path: Optional[bool] = None,
     ):
+        # if there is a custom option, create a subclass
         if (
             limits is not None
             or path_ignore_pattern is not None
             or full_validation is not None
+            or auto_snakecase is not None
+            or camelcase_path is not None
         ):
-            _path_ignore_pattern = path_ignore_pattern
-            _full_validation = full_validation
+            _locals = locals()
 
             class CustomLimitsValidationRule(base.LimitsValidationRule):
                 default_limits = limits
-                path_ignore_pattern = _path_ignore_pattern
-                full_validation = _full_validation
+                path_ignore_pattern = _locals["path_ignore_pattern"]
+                full_validation = _locals["full_validation"]
+                auto_snakecase = _locals["auto_snakecase"]
+                camelcase_path = _locals["camelcase_path"]
 
         else:
             CustomLimitsValidationRule = base.LimitsValidationRule
@@ -53,25 +60,28 @@ class CustomGrapheneProtector(AddValidationRules):
         super().__init__([CustomLimitsValidationRule])
 
 
-class Schema(base.SchemaMixin, StrawberrySchema):
+class Schema(
+    base.SchemaMixin,
+    StrawberrySchema,
+    protector_per_operation_validation=False,
+):
     def __init__(
         self,
         *args,
         limits=base.MISSING_LIMITS,
         path_ignore_pattern=base.default_path_ignore_pattern,
+        extensions=(),
         **kwargs
     ):
         self.protector_default_limits = limits
         self.protector_path_ignore_pattern = path_ignore_pattern
-        super().__init__(*args, **kwargs)
-        for extension in self.extensions:
+        for extension in extensions:
             if isinstance(extension, CustomGrapheneProtector):
-                # undecorate if CustomGrapheneProtector is in extensions
-                # TODO: preserve nonProtector decorators
-                if hasattr(self, "execute"):
-                    self.execute = self.execute.__wrapped__
-                if hasattr(self, "execute_async"):
-                    self.execute_async = self.execute_async.__wrapped__
-                if hasattr(self, "subscribe"):
-                    self.subscribe = self.subscribe.__wrapped__
                 break
+        else:
+            extensions = (CustomGrapheneProtector(), *extensions)
+
+        super().__init__(*args, extensions=extensions, **kwargs)
+
+    def get_protector_auto_snakecase(self):
+        return self.config.name_converter.auto_camel_case

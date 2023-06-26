@@ -1,4 +1,5 @@
 import graphene
+
 from graphene_protector import Limits
 from graphene_protector.graphene import Schema as ProtectorSchema
 
@@ -18,7 +19,6 @@ class Person(graphene.ObjectType):
 if __name__ == "__main__":
 
     class Query2(graphene.ObjectType):
-
         person1 = Limits()(graphene.Field(Person))
         person2 = graphene.Field(Person)
 
@@ -46,5 +46,3 @@ if __name__ == "__main__":
         }
     """
     result = schema.execute(query)
-    print(result)
-    print(result.data["person1"])

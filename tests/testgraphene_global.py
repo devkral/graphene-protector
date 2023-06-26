@@ -1,16 +1,17 @@
 __package__ = "tests"
 
 import unittest
-import graphene
 from dataclasses import fields
+
+import graphene
 
 from graphene_protector import Limits
 from graphene_protector.graphene import Schema as ProtectorSchema
+
 from .graphene_base import Person
 
 
 class Query(graphene.ObjectType):
-
     person = graphene.Field(Person)
     person2 = graphene.Field(Person)
 

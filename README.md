@@ -149,7 +149,7 @@ self.assertFalse(validate(schema, query_ast, [LimitsValidationRule]))
 
 ```
 
-strawberry variant with mixin
+strawberry variant with mixin (uses protector_per_operation_validation in contrast to the official graphene-protector strawberry schema)
 
 ```python 3
 from graphene_protector import Limits, SchemaMixin, default_path_ignore_pattern
@@ -163,7 +163,7 @@ schema = CustomSchema(query=Query)
 result = schema.execute(query_string)
 ```
 
-Note: for the mixin method all variables are prefixed in schema with `protector_`. Internally the `get_protector_` methods are used and mapped on the validation context
+Note: for the mixin method all variables are prefixed in schema with `protector_`. Internally the `get_protector_` methods are used and mapped on the validation context. The extracted functions can be customized via the `protector_decorate_graphql_schema` method.
 
 ## Limits
 
@@ -197,6 +197,10 @@ schema = Schema(query=Query, limits=Limits(depth=20, selections=None, complexity
 result = schema.execute(query_string, check_limits=False)
 ```
 
+This includes all decorations and makes graphene_protector a noop.
+
+Usefull for debugging or working around errors
+
 # Path ignoring
 
 This is a feature for ignoring some path parts in calculation but still traversing them.
@@ -208,9 +212,11 @@ The path the regex matches agains is composed like this: `fieldname/subfields/..
 Other examples are:
 
 -   `node$|id$` for ignoring id fields in selection/complexity count and reducing the depth by 1 when seeing a node field
--   `page_info|pageInfo` for ignoring page info in calculation (Note: you need only one)
+-   `page_info|pageInfo` for ignoring page info in calculation (Note: you need only one, in case auto_snakecase=True only `pageInfo`)
 
-Note: items prefixed with `__` (internal names) are always ignored and not traversed
+Note: items prefixed with `__` (internal names) are always ignored and not traversed.
+
+Note: if auto_snakecase is True, the path components are by default camel cased (overwritable via explicit `camelcase_path`)
 
 # full validation
 
@@ -241,3 +247,5 @@ If you want some new or better algorithms integrated just make a PR
 
 -   stop when an open path regex is used. May append an invalid char and check if it is still ignoring
 -   keep an eye on the performance impact of the new path regex checking
+-   add tests for auto_snakecase and camelcase_path
+-   skip tests in case settings are not matching

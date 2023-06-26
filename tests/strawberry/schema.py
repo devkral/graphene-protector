@@ -1,4 +1,5 @@
 from typing import List, Optional, Union
+
 import strawberry
 from strawberry.types import Info
 
@@ -11,11 +12,13 @@ class PersonFilter:
 @strawberry.type
 class Person1:
     name: str
+    child: Optional[Union["Person1", "Person2"]] = None
 
 
 @strawberry.type
 class Person2:
     name: str
+    child: Optional[Union["Person1", "Person2"]] = None
 
 
 @strawberry.type
@@ -25,8 +28,8 @@ class Query:
         self, info: Info, filters: Optional[List[PersonFilter]] = None
     ) -> List[Union[Person1, Person2]]:
         return [
-            Person1(name="Hans"),
-            Person2(name="Zoe"),
+            Person1(name="Hans", child=Person2(name="Willi")),
+            Person2(name="Zoe", child=Person1(name="Hubert")),
         ]
 
     @strawberry.field

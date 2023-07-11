@@ -230,7 +230,7 @@ def check_resource_usage(
             if isinstance(
                 schema_field,
                 (GraphQLUnionType, GraphQLInterfaceType, GraphQLObjectType),
-            ):
+            ) or not hasattr(schema_field, "type"):
                 sub_field_type = schema_field
             else:
                 sub_field_type = follow_of_type(schema_field.type)

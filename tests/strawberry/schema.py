@@ -1,6 +1,7 @@
-from typing import List, Optional, Union
+from typing import Iterable, List, Optional, Union
 
 import strawberry
+from strawberry.relay import from_base64
 from strawberry.types import Info
 
 
@@ -22,7 +23,31 @@ class Person2:
 
 
 @strawberry.type
+class SomeNode(strawberry.relay.Node):
+    myid: strawberry.relay.NodeID[str]
+
+    @classmethod
+    def resolve_nodes(
+        cls,
+        *,
+        info: Info,
+        node_ids: Iterable[str],
+        required: bool,
+    ):
+        return map(lambda id: SomeNode(myid=id), node_ids)
+
+
+@strawberry.type
 class Query:
+    # should work, but broken upstream
+    # node: strawberry.relay.Node = strawberry.relay.node()
+    @strawberry.field()
+    @staticmethod
+    def node(
+        info, id: strawberry.relay.GlobalID
+    ) -> Optional[strawberry.relay.Node]:
+        return id.resolve_node(info=info, required=False)
+
     @strawberry.field
     def persons(
         self, info: Info, filters: Optional[List[PersonFilter]] = None
@@ -35,3 +60,7 @@ class Query:
     @strawberry.field
     def in_out(self, into: List[str]) -> List[str]:
         return into
+
+    @strawberry.relay.connection(strawberry.relay.ListConnection[SomeNode])
+    def some_nodes(self) -> list[SomeNode]:
+        return [SomeNode(myid=f"id-{x}") for x in range(200)]

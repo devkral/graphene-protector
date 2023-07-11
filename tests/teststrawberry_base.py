@@ -4,6 +4,7 @@ import unittest
 
 #
 from strawberry import Schema as StrawberrySchema
+from strawberry.relay import from_base64, to_base64
 
 from graphene_protector import Limits, SchemaMixin
 from graphene_protector.strawberry import CustomGrapheneProtector
@@ -187,3 +188,55 @@ class TestStrawberry(unittest.IsolatedAsyncioTestCase):
             } }"""
         )
         self.assertFalse(result.errors)
+
+    async def test_success_node_async(self):
+        schema = ProtectorSchema(
+            query=Query,
+        )
+        self.assertIsInstance(schema, StrawberrySchema)
+        result = await schema.execute(
+            """{ node (id: "%s") {
+                id
+            } }"""
+            % (to_base64("SomeNode", "foo"))
+        )
+        self.assertFalse(result.errors)
+        self.assertEqual(
+            result.data["node"]["id"], to_base64("SomeNode", "foo")
+        )
+
+    async def test_success_connection_async(self):
+        schema = ProtectorSchema(
+            query=Query,
+        )
+        self.assertIsInstance(schema, StrawberrySchema)
+        result = await schema.execute(
+            """{ someNodes {
+                edges { node { id } }
+                pageInfo {
+                    endCursor
+                }
+            } }"""
+        )
+        self.assertFalse(result.errors)
+        self.assertEqual(len(result.data["someNodes"]["edges"]), 100)
+        self.assertEqual(
+            result.data["someNodes"]["edges"][99]["node"]["id"],
+            to_base64("SomeNode", "id-99"),
+        )
+
+        # first required because of strawberry bug
+        result = await schema.execute(
+            """{ someNodes(after: "%s", first: 100) {
+                edges { node { id } }
+            } }"""
+            % result.data["someNodes"]["pageInfo"]["endCursor"]
+        )
+        self.assertFalse(result.errors)
+        self.assertEqual(len(result.data["someNodes"]["edges"]), 100)
+        self.assertEqual(
+            from_base64(result.data["someNodes"]["edges"][99]["node"]["id"])[
+                1
+            ],
+            "id-199",
+        )

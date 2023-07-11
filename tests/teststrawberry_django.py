@@ -7,8 +7,8 @@ from graphene_protector.django.strawberry import (
     Schema as ProtectorGrapheneSchema,
 )
 
-from .django.schema_strawberry import Query as QueryNonPlus
-from .django.schema_strawberry_plus import Query as QueryPlus
+from .django.schema_strawberry_advanced import Query as QueryPlus
+from .django.schema_strawberry_base import Query as QueryNonPlus
 
 schema_nonplus = ProtectorGrapheneSchema(
     query=QueryNonPlus, limits=Limits(selections=100)

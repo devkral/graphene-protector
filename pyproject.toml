@@ -27,7 +27,6 @@ graphene = { version = ">=3", optional=true }
 graphene-django = { version = ">=3", optional=true }
 
 strawberry-graphql = { version = ">=0.92", optional=true  }
-strawberry-graphql-django = { version = "*", optional=true }
 
 [tool.poetry.group.test]
 optional = true
@@ -40,13 +39,11 @@ tox = "*"
 graphene = { version = ">=3"}
 graphene-django = { version = ">=3" }
 django = { version = ">=4.2"}
-strawberry-graphql = { version = ">=0.92"  }
-strawberry-graphql-django = { version = "*" }
-strawberry-django-plus = "*"
+strawberry-graphql = { version = ">=0.192"  }
 
 
 [tool.poetry.extras]
-optional = ["graphene", "graphene-django", "strawberry-graphql", "strawberry-graphql-django"]
+optional = ["graphene", "graphene-django", "strawberry-graphql"]
 
 [tool.black]
 line-length = 79

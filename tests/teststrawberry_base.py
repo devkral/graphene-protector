@@ -225,9 +225,8 @@ class TestStrawberry(unittest.IsolatedAsyncioTestCase):
             to_base64("SomeNode", "id-99"),
         )
 
-        # first required because of strawberry bug
         result = await schema.execute(
-            """{ someNodes(after: "%s", first: 100) {
+            """{ someNodes(after: "%s") {
                 edges { node { id } }
             } }"""
             % result.data["someNodes"]["pageInfo"]["endCursor"]

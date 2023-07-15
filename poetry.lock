@@ -236,13 +236,13 @@ files = [
 
 [[package]]
 name = "platformdirs"
-version = "3.8.1"
+version = "3.9.0"
 description = "A small Python package for determining appropriate platform-specific dirs, e.g. a \"user data dir\"."
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "platformdirs-3.8.1-py3-none-any.whl", hash = "sha256:cec7b889196b9144d088e4c57d9ceef7374f6c39694ad1577a0aab50d27ea28c"},
-    {file = "platformdirs-3.8.1.tar.gz", hash = "sha256:f87ca4fcff7d2b0f81c6a748a77973d7af0f4d526f98f308477c3c436c74d528"},
+    {file = "platformdirs-3.9.0-py3-none-any.whl", hash = "sha256:16a642e216f72f16a0bf0026468135d8ffd34a3e17ad0875b030f16f3cba5cbb"},
+    {file = "platformdirs-3.9.0.tar.gz", hash = "sha256:363fe3800e9c0227721c56eea50ae30c52c57ca7865def61ea9ebad133fe4445"},
 ]
 
 [package.extras]
@@ -342,13 +342,13 @@ test = ["pytest", "pytest-cov"]
 
 [[package]]
 name = "strawberry-graphql"
-version = "0.194.4"
+version = "0.195.2"
 description = "A library for creating GraphQL APIs"
 optional = false
 python-versions = ">=3.7,<4.0"
 files = [
-    {file = "strawberry_graphql-0.194.4-py3-none-any.whl", hash = "sha256:80d1a4a4b2a5f434cc5d1c489724bc149db2834a37c9c64d2191086876373893"},
-    {file = "strawberry_graphql-0.194.4.tar.gz", hash = "sha256:803e9525c35a216f0e89b76b9d6a934653ca6fa14f7eb42399e57c0c4183afdd"},
+    {file = "strawberry_graphql-0.195.2-py3-none-any.whl", hash = "sha256:559298d59da8632df0a3f45902d534af4b0b0f2a2704ab7b0ab2e4d1ceb25251"},
+    {file = "strawberry_graphql-0.195.2.tar.gz", hash = "sha256:9224e12c718e0ada0f07cf496d71296d79611bb90648cfacd0d47b4183e60956"},
 ]
 
 [package.dependencies]
@@ -373,25 +373,6 @@ pydantic = ["pydantic (<2)"]
 pyinstrument = ["pyinstrument (>=4.0.0)"]
 sanic = ["sanic (>=20.12.2)"]
 starlite = ["starlite (>=1.48.0)"]
-
-[[package]]
-name = "strawberry-graphql-django"
-version = "0.10.6"
-description = "Strawberry GraphQL Django extension"
-optional = true
-python-versions = ">=3.7,<4.0"
-files = [
-    {file = "strawberry_graphql_django-0.10.6-py3-none-any.whl", hash = "sha256:a60a0e8941a4f29d8e5de677ef817313c2185671d5dfc2add1492fdb14210afb"},
-    {file = "strawberry_graphql_django-0.10.6.tar.gz", hash = "sha256:12d02c0078a81fd0e9135c1be1ac898247c466cf0c2446c62ccfa7c54ce87bc9"},
-]
-
-[package.dependencies]
-Django = ">=3.2"
-strawberry-graphql = ">=0.194.1"
-
-[package.extras]
-debug-toolbar = ["django-debug-toolbar (>=3.4)"]
-enum = ["django-choices-field (>=2.2.2)"]
 
 [[package]]
 name = "text-unidecode"
@@ -466,13 +447,13 @@ files = [
 
 [[package]]
 name = "virtualenv"
-version = "20.23.1"
+version = "20.24.0"
 description = "Virtual Python Environment builder"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "virtualenv-20.23.1-py3-none-any.whl", hash = "sha256:34da10f14fea9be20e0fd7f04aba9732f84e593dac291b757ce42e3368a39419"},
-    {file = "virtualenv-20.23.1.tar.gz", hash = "sha256:8ff19a38c1021c742148edc4f81cb43d7f8c6816d2ede2ab72af5b84c749ade1"},
+    {file = "virtualenv-20.24.0-py3-none-any.whl", hash = "sha256:18d1b37fc75cc2670625702d76849a91ebd383768b4e91382a8d51be3246049e"},
+    {file = "virtualenv-20.24.0.tar.gz", hash = "sha256:e2a7cef9da880d693b933db7654367754f14e20650dc60e8ee7385571f8593a3"},
 ]
 
 [package.dependencies]
@@ -504,4 +485,4 @@ optional = ["graphene", "graphene-django", "strawberry-graphql"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8,<4"
-content-hash = "4dfdc4ff5c2fb2620a8a9c3dabe553d1562aadbc5b7b8fa68ad7b83521f16e94"
+content-hash = "ade7e9cb737cd43945824883ab6b837407065f2eac749271cf298d4826a471a7"

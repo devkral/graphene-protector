@@ -38,8 +38,11 @@ tox = "*"
 tox = "*"
 graphene = { version = ">=3"}
 graphene-django = { version = ">=3" }
-django = { version = ">=4.2"}
-strawberry-graphql = { version = ">=0.192"  }
+django = [
+    {version = "<5.0", python = "<3.10"},
+    {version = ">=5.0", python = ">=3.10"}
+]
+strawberry-graphql = { version = ">=0.200"  }
 
 
 [tool.poetry.extras]

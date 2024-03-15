@@ -202,7 +202,7 @@ def check_resource_usage(
             # ignore union fields itself for selection_count
             # because we have depth for that
             retval.selections += local_union_selections
-            # gas for field itself already calculated in field.selection_set
+            # gas for field itself already calculated in parent field.selection_set
             retval.gas_used += local_gas
             del local_union_selections
             del local_gas
@@ -307,27 +307,7 @@ def check_resource_usage(
                 retval.gas_used += local_result.gas_used
             del schema_field
         else:
-            try:
-                schema_field = getattr(schema, fieldname)
-            except AttributeError:
-                _name = None
-                if hasattr(field, "name"):
-                    _name = field.name
-                    if hasattr(_name, "value"):
-                        _name = _name.value
-                if (
-                    hasattr(schema, "fields")
-                    and not isinstance(schema, GraphQLInterfaceType)
-                    and _name
-                ):
-                    schema_field = schema.fields[_name]
-                else:
-                    schema_field = schema
-            retval.gas_used += get_gas_for_field(
-                schema_field,
-                parent=schema,
-                fieldname=fieldname,
-            )
+            # gas for field itself already calculated in parent field.selection_set
             if not path_ignore_pattern.match(_path):
                 # field_contributes_to_score
                 retval.selections += 1

@@ -1,6 +1,6 @@
 import sys
-from dataclasses import dataclass
-from typing import Union
+from dataclasses import dataclass, field
+from typing import Set, Union
 
 from graphql.error import GraphQLError
 
@@ -14,6 +14,7 @@ class MISSING:
 
 _deco_options = {}
 if sys.version_info >= (3, 10):
+    _deco_options["kw_only"] = True
     _deco_options["slots"] = True
 
 if sys.version_info >= (3, 11):
@@ -25,14 +26,26 @@ class Limits:
     depth: Union[int, None, MISSING] = MISSING
     selections: Union[int, None, MISSING] = MISSING
     complexity: Union[int, None, MISSING] = MISSING
+    gas: Union[int, None, MISSING] = MISSING
+    # only for sublimits not for main Limit instance
+    # passthrough for not missing limits
+    passthrough: Set[str] = field(default_factory=set)
 
     def __call__(self, field):
         setattr(field, "_graphene_protector_limits", self)
         return field
 
 
+@dataclass(**_deco_options)
+class UsagesResult:
+    max_level_depth: int = 0
+    max_level_complexity: int = 0
+    selections: int = 0
+    gas_used: int = 0
+
+
 MISSING_LIMITS = Limits()
-DEFAULT_LIMITS = Limits(depth=20, selections=None, complexity=100)
+DEFAULT_LIMITS = Limits(depth=20, selections=None, complexity=100, gas=None)
 
 
 class EarlyStop(Exception):
@@ -48,6 +61,10 @@ class DepthLimitReached(ResourceLimitReached):
 
 
 class SelectionsLimitReached(ResourceLimitReached):
+    pass
+
+
+class GasLimitReached(ResourceLimitReached):
     pass
 
 

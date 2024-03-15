@@ -24,6 +24,9 @@ class GetDefaultsMixin:
                     complexity=_get_default_limit_from_settings(
                         "GRAPHENE_PROTECTOR_COMPLEXITY_LIMIT"
                     ),
+                    gas=_get_default_limit_from_settings(
+                        "GRAPHENE_PROTECTOR_GAS_LIMIT"
+                    ),
                 ),
             ),
             self.protector_default_limits,

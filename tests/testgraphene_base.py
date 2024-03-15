@@ -15,7 +15,7 @@ class TestGraphene(unittest.TestCase):
     def test_simple(self):
         schema = ProtectorSchema(
             query=Query,
-            limits=Limits(depth=2, selections=None, complexity=None),
+            limits=Limits(depth=2, selections=None, complexity=None, gas=None),
             types=[SomeNode],
         )
         self.assertIsInstance(schema, GrapheneSchema)
@@ -26,7 +26,7 @@ class TestGraphene(unittest.TestCase):
     def test_node(self):
         schema = ProtectorSchema(
             query=Query,
-            limits=Limits(depth=2, selections=None, complexity=None),
+            limits=Limits(depth=2, selections=None, complexity=None, gas=None),
             types=[SomeNode],
         )
         self.assertIsInstance(schema, GrapheneSchema)
@@ -67,16 +67,14 @@ class TestGraphene(unittest.TestCase):
         self.assertFalse(result.errors)
         self.assertEqual(len(result.data["someNodes"]["edges"]), 100)
         self.assertEqual(
-            from_global_id(
-                result.data["someNodes"]["edges"][99]["node"]["id"]
-            )[1],
+            from_global_id(result.data["someNodes"]["edges"][99]["node"]["id"])[1],
             "id-199",
         )
 
     def test_error_connection(self):
         schema = ProtectorSchema(
             query=Query,
-            limits=Limits(depth=3, selections=None, complexity=None),
+            limits=Limits(depth=3, selections=None, complexity=None, gas=None),
         )
         self.assertIsInstance(schema, GrapheneSchema)
         with self.subTest("success"):

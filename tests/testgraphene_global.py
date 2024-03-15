@@ -29,12 +29,12 @@ class TestGlobal(unittest.TestCase):
         for field in fields(dlimit):
             with self.subTest(f"Test default: {field.name}"):
                 limit = getattr(dlimit, field.name)
-                self.assertTrue(limit is None or limit >= 0)
+                self.assertTrue(limit is None or isinstance(limit, set) or limit >= 0)
 
     def test_depth(self):
         schema = ProtectorSchema(
             query=Query,
-            limits=Limits(depth=2, selections=None, complexity=None),
+            limits=Limits(depth=2, selections=None, complexity=None, gas=None),
         )
 
         with self.subTest("success"):
@@ -93,7 +93,7 @@ class TestGlobal(unittest.TestCase):
     def test_selections(self):
         schema = ProtectorSchema(
             query=Query,
-            limits=Limits(selections=2, depth=None, complexity=None),
+            limits=Limits(selections=2, depth=None, complexity=None, gas=None),
         )
         with self.subTest("success 1"):
             query = """
@@ -169,7 +169,7 @@ class TestGlobal(unittest.TestCase):
     def test_complexity(self):
         schema = ProtectorSchema(
             query=Query,
-            limits=Limits(selections=None, depth=None, complexity=2),
+            limits=Limits(selections=None, depth=None, complexity=2, gas=None),
         )
         with self.subTest("success 1"):
             query = """

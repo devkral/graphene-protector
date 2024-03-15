@@ -243,6 +243,8 @@ If you want some new or better algorithms integrated just make a PR
 
 # TODO
 
+-   add tests and documentation for passthrough
+-   add tests and documentation for gas
 -   stop when an open path regex is used. May append an invalid char and check if it is still ignoring
 -   keep an eye on the performance impact of the new path regex checking
 -   add tests for auto_snakecase and camelcase_path

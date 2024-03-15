@@ -15,7 +15,7 @@ from .strawberry.schema import Query
 
 class CustomSchema(SchemaMixin, StrawberrySchema):
     protector_default_limits = Limits(
-        depth=2, selections=None, complexity=None
+        depth=2, selections=None, complexity=None, gas=None
     )
 
 
@@ -23,7 +23,7 @@ class CustomSchemaWithoutOperationWrapping(
     SchemaMixin, StrawberrySchema, protector_per_operation_validation=False
 ):
     protector_default_limits = Limits(
-        depth=2, selections=None, complexity=None
+        depth=2, selections=None, complexity=None, gas=None
     )
 
 
@@ -31,7 +31,7 @@ class TestStrawberry(unittest.IsolatedAsyncioTestCase):
     def test_simple_sync(self):
         schema = ProtectorSchema(
             query=Query,
-            limits=Limits(depth=2, selections=None, complexity=None),
+            limits=Limits(depth=2, selections=None, complexity=None, gas=None),
         )
         self.assertIsInstance(schema, StrawberrySchema)
         self.assertTrue(
@@ -56,7 +56,7 @@ class TestStrawberry(unittest.IsolatedAsyncioTestCase):
     def test_failing_sync(self):
         schema = ProtectorSchema(
             query=Query,
-            limits=Limits(depth=1, selections=None, complexity=None),
+            limits=Limits(depth=1, selections=None, complexity=None, gas=None),
         )
         self.assertIsInstance(schema, StrawberrySchema)
         self.assertTrue(
@@ -82,7 +82,7 @@ class TestStrawberry(unittest.IsolatedAsyncioTestCase):
     async def test_failing_async(self):
         schema = ProtectorSchema(
             query=Query,
-            limits=Limits(depth=1, selections=None, complexity=None),
+            limits=Limits(depth=1, selections=None, complexity=None, gas=None),
         )
         self.assertIsInstance(schema, StrawberrySchema)
         self.assertTrue(
@@ -108,7 +108,7 @@ class TestStrawberry(unittest.IsolatedAsyncioTestCase):
     def test_in_out(self):
         schema = ProtectorSchema(
             query=Query,
-            limits=Limits(depth=2, selections=None, complexity=None),
+            limits=Limits(depth=2, selections=None, complexity=None, gas=None),
         )
         self.assertIsInstance(schema, StrawberrySchema)
         result = schema.execute_sync('{ inOut(into: ["a", "b"]) }')
@@ -118,7 +118,7 @@ class TestStrawberry(unittest.IsolatedAsyncioTestCase):
     async def test_simple_async(self):
         schema = ProtectorSchema(
             query=Query,
-            limits=Limits(depth=2, selections=None, complexity=None),
+            limits=Limits(depth=2, selections=None, complexity=None, gas=None),
         )
         self.assertIsInstance(schema, StrawberrySchema)
         result = await schema.execute(
@@ -154,7 +154,7 @@ class TestStrawberry(unittest.IsolatedAsyncioTestCase):
             query=Query,
             extensions=[
                 CustomGrapheneProtector(
-                    limits=Limits(depth=2, selections=None, complexity=None),
+                    limits=Limits(depth=2, selections=None, complexity=None, gas=None),
                 )
             ],
         )
@@ -201,9 +201,7 @@ class TestStrawberry(unittest.IsolatedAsyncioTestCase):
             % (to_base64("SomeNode", "foo"))
         )
         self.assertFalse(result.errors)
-        self.assertEqual(
-            result.data["node"]["id"], to_base64("SomeNode", "foo")
-        )
+        self.assertEqual(result.data["node"]["id"], to_base64("SomeNode", "foo"))
 
     async def test_success_connection_async(self):
         schema = ProtectorSchema(
@@ -234,8 +232,6 @@ class TestStrawberry(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(result.errors)
         self.assertEqual(len(result.data["someNodes"]["edges"]), 100)
         self.assertEqual(
-            from_base64(result.data["someNodes"]["edges"][99]["node"]["id"])[
-                1
-            ],
+            from_base64(result.data["someNodes"]["edges"][99]["node"]["id"])[1],
             "id-199",
         )

@@ -1,6 +1,7 @@
 __package__ = "tests"
 
 import unittest
+
 import graphene
 
 from graphene_protector import Limits
@@ -33,7 +34,6 @@ class Person3(graphene.ObjectType):
 
 
 class Query(graphene.ObjectType):
-
     set_directly = Limits(depth=2)(graphene.Field(Person))
     unset_directly = Limits(depth=None)(graphene.Field(Person))
     unset_hierachy = Limits(depth=1)(graphene.Field(Person3))
@@ -51,7 +51,7 @@ class Query(graphene.ObjectType):
 schema = ProtectorSchema(
     query=Query,
     auto_camelcase=True,
-    limits=Limits(depth=3, selections=None, complexity=None),
+    limits=Limits(depth=3, selections=None, complexity=None, gas=None),
 )
 
 

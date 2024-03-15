@@ -1,8 +1,26 @@
+__all__ = [
+    "MISSING",
+    "Limits",
+    "UsagesResult",
+    "DEFAULT_LIMITS",
+    "MISSING_LIMITS",
+    "EarlyStop",
+    "ResourceLimitReached",
+    "DepthLimitReached",
+    "SelectionsLimitReached",
+    "ComplexityLimitReached",
+    "GasLimitReached",
+    "default_path_ignore_pattern",
+]
+
+import copy
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Set, Union
 
 from graphql.error import GraphQLError
+
+_empty_set = frozenset()
 
 
 class MISSING:
@@ -29,10 +47,11 @@ class Limits:
     gas: Union[int, None, MISSING] = MISSING
     # only for sublimits not for main Limit instance
     # passthrough for not missing limits
-    passthrough: Set[str] = field(default_factory=set)
+    passthrough: Set[str] = _empty_set
 
     def __call__(self, field):
-        setattr(field, "_graphene_protector_limits", self)
+        # ensure every decoration has an own id
+        setattr(field, "_graphene_protector_limits", copy.copy(self))
         return field
 
 
@@ -64,11 +83,11 @@ class SelectionsLimitReached(ResourceLimitReached):
     pass
 
 
-class GasLimitReached(ResourceLimitReached):
+class ComplexityLimitReached(ResourceLimitReached):
     pass
 
 
-class ComplexityLimitReached(ResourceLimitReached):
+class GasLimitReached(ResourceLimitReached):
     pass
 
 

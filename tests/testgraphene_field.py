@@ -28,8 +28,15 @@ class Person4(graphene.ObjectType):
     age = graphene.Int()
     depth = graphene.Int()
     child = Limits(depth=2)(graphene.Field(Person))
+    child2 = Limits(depth=2, passthrough={"depth"})(graphene.Field(Person))
 
     def resolve_child(self, info):
+        if self.depth == 0:
+            return None
+
+        return Person(id=self.id + 1, depth=self.depth - 1, age=34)
+
+    def resolve_child2(self, info):
         if self.depth == 0:
             return None
 
@@ -157,6 +164,20 @@ class TestField(unittest.TestCase):
                 child {
                     age
                 }
+            }
+        }
+      }
+    }
+"""
+            result = schema.execute(query)
+            self.assertTrue(result.errors)
+            # test passthrough
+            query = """
+    query something{
+      setHierachy{
+        child {
+            child2 {
+                age
             }
         }
       }

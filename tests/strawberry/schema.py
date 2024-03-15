@@ -1,8 +1,9 @@
 from typing import Iterable, List, Optional, Union
 
 import strawberry
-from strawberry.relay import from_base64
 from strawberry.types import Info
+
+from graphene_protector import gas_usage
 
 
 @strawberry.input
@@ -43,9 +44,7 @@ class Query:
     # node: strawberry.relay.Node = strawberry.relay.node()
     @strawberry.field()
     @staticmethod
-    def node(
-        info, id: strawberry.relay.GlobalID
-    ) -> Optional[strawberry.relay.Node]:
+    def node(info, id: strawberry.relay.GlobalID) -> Optional[strawberry.relay.Node]:
         return id.resolve_node(info=info, required=False)
 
     @strawberry.field
@@ -57,6 +56,7 @@ class Query:
             Person2(name="Zoe", child=Person1(name="Hubert")),
         ]
 
+    @gas_usage(lambda **_kwargs: 4)
     @strawberry.field
     def in_out(self, into: List[str]) -> List[str]:
         return into

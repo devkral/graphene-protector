@@ -4,6 +4,8 @@ from graphql.type import (
     GraphQLString,
 )
 
+from graphene_protector import gas_usage
+
 try:
     field = GraphQLField(GraphQLString, resolve=lambda *_: "World")
 except TypeError:
@@ -11,5 +13,5 @@ except TypeError:
 
 Query = GraphQLObjectType(
     "Query",
-    lambda: {"hello": field},
+    lambda: {"hello": gas_usage(1)(field)},
 )

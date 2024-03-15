@@ -15,13 +15,26 @@ class TestGraphene(unittest.TestCase):
     def test_simple(self):
         schema = ProtectorSchema(
             query=Query,
-            limits=Limits(depth=2, selections=None, complexity=None, gas=None),
+            limits=Limits(depth=2, selections=None, complexity=None, gas=1),
             types=[SomeNode],
         )
         self.assertIsInstance(schema, GrapheneSchema)
         result = schema.execute("{ hello }")
         self.assertFalse(result.errors)
         self.assertDictEqual(result.data, {"hello": "World"})
+
+    def test_gas(self):
+        schema = ProtectorSchema(
+            query=Query,
+            limits=Limits(depth=None, selections=None, complexity=None, gas=1),
+            types=[SomeNode],
+        )
+        self.assertIsInstance(schema, GrapheneSchema)
+        result = schema.execute("{ hello }")
+        self.assertFalse(result.errors)
+        self.assertDictEqual(result.data, {"hello": "World"})
+        result = schema.execute("{ hello, hello1: hello }")
+        self.assertTrue(result.errors)
 
     def test_node(self):
         schema = ProtectorSchema(

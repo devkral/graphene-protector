@@ -1,6 +1,7 @@
 import graphene
 from graphene import relay
-from graphql_relay import from_global_id
+
+from graphene_protector import gas_usage
 
 
 class SomeNode(graphene.ObjectType):
@@ -28,7 +29,7 @@ class SomeNodeConnection(relay.Connection):
 class Query(graphene.ObjectType):
     node = relay.Node.Field()
 
-    hello = graphene.String()
+    hello = gas_usage(lambda **kwargs: 1)(graphene.String())
 
     def resolve_hello(root, info):
         return "World"

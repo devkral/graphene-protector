@@ -108,12 +108,14 @@ class TestStrawberry(unittest.IsolatedAsyncioTestCase):
     def test_in_out(self):
         schema = ProtectorSchema(
             query=Query,
-            limits=Limits(depth=2, selections=None, complexity=None, gas=None),
+            limits=Limits(depth=2, selections=None, complexity=None, gas=4),
         )
         self.assertIsInstance(schema, StrawberrySchema)
         result = schema.execute_sync('{ inOut(into: ["a", "b"]) }')
         self.assertFalse(result.errors)
         self.assertDictEqual(result.data, {"inOut": ["a", "b"]})
+        result = schema.execute_sync("{ inOut(into: []), inOut2: inOut(into: []) }")
+        self.assertTrue(result.errors)
 
     async def test_simple_async(self):
         schema = ProtectorSchema(

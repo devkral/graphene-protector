@@ -1,3 +1,18 @@
+__all__ = [
+    "follow_of_type",
+    "to_camel_case",
+    "to_snake_case",
+    "merge_limits",
+    "gas_for_field",
+    "limits_for_field",
+    "check_resource_usage",
+    "gas_usage",
+    "LimitsValidationRule",
+    "decorate_limits",
+    "decorate_limits_async",
+    "SchemaMixin",
+]
+
 import re
 from collections.abc import Callable
 from dataclasses import fields, replace
@@ -64,6 +79,7 @@ def merge_limits(old_limits: Limits, new_limits: Limits):
     _limits = {}
     for field in fields(new_limits):
         value = getattr(new_limits, field.name)
+        # passthrough is always set so there is no issue
         if value is not MISSING:
             _limits[field.name] = value
     return replace(old_limits, **_limits)
@@ -85,7 +101,7 @@ def gas_for_field(schema_field, **kwargs) -> int:
         if hasattr(schema_field, "_graphene_protector_gas"):
             retval = getattr(schema_field, "_graphene_protector_gas")
             if callable(retval):
-                retval = retval(**kwargs)
+                retval = retval(schema_field=schema_field, **kwargs)
             return retval
         if hasattr(schema_field, "__func__"):
             schema_field = getattr(schema_field, "__func__")
@@ -145,6 +161,30 @@ def check_resource_usage(
             fieldname = to_snake_case(fieldname)
         if isinstance(field, FragmentSpreadNode):
             field = validation_context.get_fragment(field.name.value)
+
+        try:
+            schema_field = getattr(schema, fieldname)
+        except AttributeError:
+            _name = None
+            if hasattr(field, "name"):
+                _name = field.name
+                if hasattr(_name, "value"):
+                    _name = _name.value
+            if (
+                hasattr(schema, "fields")
+                and not isinstance(schema, GraphQLInterfaceType)
+                and _name
+            ):
+                schema_field = schema.fields[_name]
+            else:
+                schema_field = schema
+
+        # add gas for field
+        retval.gas_used += get_gas_for_field(
+            schema_field,
+            parent=schema,
+            fieldname=fieldname,
+        )
 
         if isinstance(field, (GraphQLUnionType, GraphQLInterfaceType)):
             merged_limits = limits
@@ -207,35 +247,13 @@ def check_resource_usage(
             del local_union_selections
             del local_gas
         elif field.selection_set:
-            try:
-                schema_field = getattr(schema, fieldname)
-            except AttributeError:
-                _name = None
-                if hasattr(field, "name"):
-                    _name = field.name
-                    if hasattr(_name, "value"):
-                        _name = _name.value
-                if (
-                    hasattr(schema, "fields")
-                    and not isinstance(schema, GraphQLInterfaceType)
-                    and _name
-                ):
-                    schema_field = schema.fields[_name]
-                else:
-                    schema_field = schema
             merged_limits, sub_limits = get_limits_for_field(
                 schema_field,
                 limits,
                 parent=schema,
                 fieldname=fieldname,
             )
-            # add gas for selection field
-            retval.gas_used += get_gas_for_field(
-                schema_field,
-                parent=schema,
-                fieldname=fieldname,
-            )
-            allow_reset = True
+            allow_restart_counters = True
             field_contributes_to_score = True
             _npath = "{}/{}".format(
                 _path,
@@ -245,10 +263,12 @@ def check_resource_usage(
                 field_contributes_to_score = False
             # must be seperate from condition above
             if sub_limits is not MISSING:
-                if id(sub_limits) in _seen_limits:
-                    allow_reset = False
+                id_sub_limits = id(sub_limits)
+                # loop detected, cannot reset via sub_limits
+                if id_sub_limits in _seen_limits:
+                    allow_restart_counters = False
                 else:
-                    _seen_limits.add(id(sub_limits))
+                    _seen_limits.add(id_sub_limits)
             if isinstance(
                 schema_field,
                 (GraphQLUnionType, GraphQLInterfaceType, GraphQLObjectType),
@@ -269,10 +289,10 @@ def check_resource_usage(
                 get_gas_for_field=get_gas_for_field,
                 # field_contributes_to_score will be casted to 1 for True
                 level_depth=level_depth + field_contributes_to_score
-                if sub_limits.depth is MISSING or not allow_reset
+                if sub_limits.depth is MISSING or not allow_restart_counters
                 else 1,
                 level_complexity=level_complexity + field_contributes_to_score
-                if sub_limits.complexity is MISSING or not allow_reset
+                if sub_limits.complexity is MISSING or not allow_restart_counters
                 else 1,
                 _seen_limits=_seen_limits,
                 _path=_npath,

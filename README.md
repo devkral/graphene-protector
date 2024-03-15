@@ -172,6 +172,8 @@ A Limits object has following attributes:
 -   depth: max depth (default: 20, None disables feature)
 -   selections: max selections (default: None, None disables feature)
 -   complexity: max (depth subtree \* selections subtree) (default: 100, None disables feature)
+-   gas: accumulated gas costs (default: None, None disables feature)
+-   passthrough: field names specified here will be passed through regardless if specified (default: empty frozen set)
 
 they overwrite django settings if specified.
 
@@ -180,10 +182,22 @@ they overwrite django settings if specified.
 Sometimes single fields should have different limits:
 
 ```python
-    person1 = Limits(depth=10)(graphene.Field(Person))
+from graphene_protector import Limits
+person1 = Limits(depth=10)(graphene.Field(Person))
 ```
 
-Limits are inherited for unspecified parameters
+Limits are passthroughs for missing parameters
+
+There is also a novel technique named gas: you can assign a field a static value or dynamically calculate it for the field
+
+The decorator is called gas_usage
+
+```python
+from graphene_protector import gas_usage
+person1 = gas_usage(10)(graphene.Field(Person))
+```
+
+see tests for more examples
 
 ## one-time disable limit checks
 
@@ -243,8 +257,6 @@ If you want some new or better algorithms integrated just make a PR
 
 # TODO
 
--   add tests and documentation for passthrough
--   add tests and documentation for gas
 -   stop when an open path regex is used. May append an invalid char and check if it is still ignoring
 -   keep an eye on the performance impact of the new path regex checking
 -   add tests for auto_snakecase and camelcase_path

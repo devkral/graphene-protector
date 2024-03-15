@@ -29,7 +29,9 @@ class TestGlobal(unittest.TestCase):
         for field in fields(dlimit):
             with self.subTest(f"Test default: {field.name}"):
                 limit = getattr(dlimit, field.name)
-                self.assertTrue(limit is None or isinstance(limit, set) or limit >= 0)
+                self.assertTrue(
+                    limit is None or isinstance(limit, (set, frozenset)) or limit >= 0
+                )
 
     def test_depth(self):
         schema = ProtectorSchema(

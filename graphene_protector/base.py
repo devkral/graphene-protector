@@ -123,6 +123,7 @@ def check_resource_usage(
     schema,
     node: Node,
     validation_context: ValidationContext,
+    *,
     limits: Limits,
     on_error: Callable[[GraphQLError], None],
     auto_snakecase=False,
@@ -133,7 +134,7 @@ def check_resource_usage(
     level_depth=0,
     level_complexity=0,
     _seen_limits=None,
-    _path="",
+    graphql_path="",
 ) -> UsagesResult:
     if _seen_limits is None:
         _seen_limits = set()
@@ -144,11 +145,7 @@ def check_resource_usage(
     )
     assert limits.depth is not MISSING, "missing should be already resolved here"
     if limits.depth and retval.max_level_depth > limits.depth:
-        on_error(
-            DepthLimitReached(
-                "Query is too deep",
-            )
-        )
+        on_error(DepthLimitReached("Query is too deep", used_resources=retval))
     for field in node.selection_set.selections:
         if isinstance(field, InlineFragmentNode):
             fieldname = field.type_condition.name.value
@@ -181,9 +178,7 @@ def check_resource_usage(
 
         # add gas for field
         retval.gas_used += get_gas_for_field(
-            schema_field,
-            parent=schema,
-            fieldname=fieldname,
+            schema_field, parent=schema, fieldname=fieldname, graphql_path=graphql_path
         )
 
         if isinstance(field, (GraphQLUnionType, GraphQLInterfaceType)):
@@ -193,7 +188,7 @@ def check_resource_usage(
 
             field_contributes_to_score = True
             _npath = "{}/{}".format(
-                _path,
+                graphql_path,
                 to_camel_case(fieldname) if camelcase_path else fieldname,
             )
             if path_ignore_pattern.match(_npath):
@@ -216,7 +211,7 @@ def check_resource_usage(
                     # don't increase complexity, in unions it stays the same
                     level_complexity=level_complexity,
                     _seen_limits=_seen_limits,
-                    _path=_npath,
+                    graphql_path=_npath,
                 )
 
                 # we know here, that there are no individual sub_limits
@@ -228,7 +223,19 @@ def check_resource_usage(
                     * local_result.selections
                     > merged_limits.complexity
                 ):
-                    on_error(ComplexityLimitReached("Query is too complex", node))
+                    on_error(
+                        ComplexityLimitReached(
+                            "Query is too complex",
+                            node,
+                            used_resources=replace(
+                                retval,
+                                max_level_complexity=(
+                                    local_result.max_level_complexity - level_complexity
+                                )
+                                * local_result.selections,
+                            ),
+                        )
+                    )
                 # find max of selections for unions
                 if local_result.selections > local_union_selections:
                     local_union_selections = local_result.selections
@@ -252,11 +259,12 @@ def check_resource_usage(
                 limits,
                 parent=schema,
                 fieldname=fieldname,
+                graphql_path=graphql_path,
             )
             allow_restart_counters = True
             field_contributes_to_score = True
             _npath = "{}/{}".format(
-                _path,
+                graphql_path,
                 to_camel_case(fieldname) if camelcase_path else fieldname,
             )
             if path_ignore_pattern.match(_npath):
@@ -280,7 +288,7 @@ def check_resource_usage(
                 sub_field_type,
                 field,
                 validation_context,
-                merged_limits,
+                limits=merged_limits,
                 on_error=on_error,
                 auto_snakecase=auto_snakecase,
                 camelcase_path=camelcase_path,
@@ -295,7 +303,7 @@ def check_resource_usage(
                 if sub_limits.complexity is MISSING or not allow_restart_counters
                 else 1,
                 _seen_limits=_seen_limits,
-                _path=_npath,
+                graphql_path=_npath,
             )
             # called per query, selection
             if (
@@ -304,7 +312,19 @@ def check_resource_usage(
                 * local_result.selections
                 > merged_limits.complexity
             ):
-                on_error(ComplexityLimitReached("Query is too complex", node))
+                on_error(
+                    ComplexityLimitReached(
+                        "Query is too complex",
+                        node,
+                        used_resources=replace(
+                            retval,
+                            max_level_complexity=(
+                                local_result.max_level_depth - level_depth
+                            )
+                            * local_result.selections,
+                        ),
+                    )
+                )
             # increase level counter only if limits are not redefined
             if (
                 sub_limits.depth is MISSING or "depth" in sub_limits.passthrough
@@ -328,14 +348,20 @@ def check_resource_usage(
             del schema_field
         else:
             # gas for field itself already calculated in parent field.selection_set
-            if not path_ignore_pattern.match(_path):
+            if not path_ignore_pattern.match(graphql_path):
                 # field_contributes_to_score
                 retval.selections += 1
 
         if limits.selections and retval.selections > limits.selections:
-            on_error(SelectionsLimitReached("Query selects too much", node))
+            on_error(
+                SelectionsLimitReached(
+                    "Query selects too much", node, used_resources=retval
+                )
+            )
         if limits.gas and retval.gas_used > limits.gas:
-            on_error(GasLimitReached("Query uses too much gas", node))
+            on_error(
+                GasLimitReached("Query uses too much gas", node, used_resources=retval)
+            )
     return retval
 
 
@@ -445,8 +471,8 @@ class LimitsValidationRule(ValidationRule):
                         maintype,
                         definition,
                         self.context,
-                        self.default_limits,
-                        self.report_error,
+                        limits=self.default_limits,
+                        on_error=self.report_error,
                         get_limits_for_field=get_limits_for_field,
                         get_gas_for_field=get_gas_for_field,
                         auto_snakecase=self.auto_snakecase,

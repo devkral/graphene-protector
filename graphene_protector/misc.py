@@ -72,7 +72,11 @@ class EarlyStop(Exception):
 
 
 class ResourceLimitReached(GraphQLError):
-    pass
+    used_resources: UsagesResult
+
+    def __init__(self, *args, used_resources, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.used_resources = used_resources
 
 
 class DepthLimitReached(ResourceLimitReached):

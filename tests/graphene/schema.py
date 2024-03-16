@@ -13,6 +13,11 @@ class SomeNode(graphene.ObjectType):
     def resolve_hello(root, info):
         return "World"
 
+    bar = gas_usage(lambda **kwargs: 1)(graphene.String())
+
+    def resolve_bar(root, info):
+        return "World"
+
     @classmethod
     def get_node(cls, info, id):
         return SomeNode(id=id)

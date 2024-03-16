@@ -195,6 +195,9 @@ The decorator is called gas_usage
 ```python
 from graphene_protector import gas_usage
 person1 = gas_usage(10)(graphene.Field(Person))
+# dynamic way:
+person2 = gas_usage(lambda **kwargs: 10)(graphene.Field(Person))
+
 ```
 
 see tests for more examples
@@ -230,6 +233,21 @@ Note: items prefixed with `__` (internal names) are always ignored and not trave
 
 Note: if auto_snakecase is True, the path components are by default camel cased (overwritable via explicit `camelcase_path`)
 
+Note: gas is excluded from path ignoring
+
+# Gas
+
+Gas should be a positive integer. Negative integers are possible but
+the evaulation is stopped whenever the counter is above the limit so this is not reliable
+
+The gas usage is annotated with the gas_usage decorator. A function can be passed
+which receives the following keyword arguments:
+
+-   schema_field
+-   fieldname
+-   parent (parent of schema_field)
+-   graphql_path
+
 # full validation
 
 On the validation rule the validation is stopped by default when an error is found
@@ -249,15 +267,25 @@ It is used by the django mixin to read the settings (see django) and to react on
 I am open for new ideas.
 If you want some new or better algorithms integrated just make a PR
 
+## Internals
+
+Path ignoring is ignored for the gas calculation (gas is always explicit). Therefor there is no way to stop when an open path was found (all children are ignored).
+
+This project uses a stack based recursive approach. There should be always a limit in depth to not crash for deep recursion levels (>700).
+
 # related projects:
 
 -   secure-graphene: lacks django integration, some features and has a not so easy findable name.
     But I accept: it is the "not invented here"-syndrome
--
+-   cost specs: https://ibm.github.io/graphql-specs/cost-spec.html
+    looks nice but very hard to implement. Handling costs at client and server side sounds complicated.
 
 # TODO
 
--   stop when an open path regex is used. May append an invalid char and check if it is still ignoring
+-   fill RessourceLimits (graphql errors) with details like the field where the limit was reached
+-   think about an alternative to a recursive stack based design. Heap would maybe be safer and is used by other validation rules
+    -   use partials to build a stack and yield
+-   improve documentation
 -   keep an eye on the performance impact of the new path regex checking
 -   add tests for auto_snakecase and camelcase_path
 -   skip tests in case settings are not matching

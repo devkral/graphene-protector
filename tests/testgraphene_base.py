@@ -35,6 +35,8 @@ class TestGraphene(unittest.TestCase):
         self.assertDictEqual(result.data, {"hello": "World"})
         result = schema.execute("{ hello, hello1: hello }")
         self.assertTrue(result.errors)
+        result = schema.execute("""{ hello, node(id:"1"){ bar } }""")
+        self.assertTrue(result.errors)
 
     def test_node(self):
         schema = ProtectorSchema(

@@ -92,6 +92,32 @@ class TestGlobal(unittest.TestCase):
             result = schema.execute(query, check_limits=False)
             self.assertFalse(result.errors)
 
+    def test_high_depth(self):
+        schema = ProtectorSchema(
+            query=Query,
+            limits=Limits(depth=None, selections=None, complexity=None, gas=None),
+        )
+        high_recursion = "%s"
+        # higher numbers fail because of graphql-core
+        for i in range(200):
+            high_recursion = high_recursion % "child { %s }"
+        high_recursion = high_recursion % "age"
+
+        query = (
+            """
+    query something{
+      person {
+        id
+        age
+        %s
+      }
+    }
+"""
+            % high_recursion
+        )
+        result = schema.execute(query)
+        self.assertFalse(result.errors)
+
     def test_selections(self):
         schema = ProtectorSchema(
             query=Query,

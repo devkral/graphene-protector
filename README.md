@@ -271,20 +271,22 @@ If you want some new or better algorithms integrated just make a PR
 
 Path ignoring is ignored for the gas calculation (gas is always explicit). Therefor there is no way to stop when an open path was found (all children are ignored).
 
-This project uses a stack based recursive approach. There should be always a limit in depth to not crash for deep recursion levels (>700).
+This project uses a "stack free" recursive approach. Instead of calling recursively, generators are used to remember the position and to continue.
+
+Note: graphql itself will fail because they are not using a stack free approach. For graphql there was a limit around 200 depth. The graphql tree cannot be constructed so there is no way to evaluate this.
 
 # related projects:
 
 -   secure-graphene: lacks django integration, some features and has a not so easy findable name.
     But I accept: it is the "not invented here"-syndrome
 -   cost specs: https://ibm.github.io/graphql-specs/cost-spec.html
-    looks nice but very hard to implement. Handling costs at client and server side sounds complicated.
+    looks nice but very hard to implement. Handling costs at client and server side synchronously is complicated.
+    Also the costs are baked into the schema, which crosses the boundary between static and dynamic
 
 # TODO
 
+-   manually construct the graphql tree for tests for check_resource_usages
 -   fill RessourceLimits (graphql errors) with details like the field where the limit was reached
--   think about an alternative to a recursive stack based design. Heap would maybe be safer and is used by other validation rules
-    -   use partials to build a stack and yield
 -   improve documentation
 -   keep an eye on the performance impact of the new path regex checking
 -   add tests for auto_snakecase and camelcase_path

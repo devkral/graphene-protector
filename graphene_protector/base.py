@@ -16,7 +16,7 @@ __all__ = [
 import re
 from collections.abc import Callable
 from dataclasses import fields, replace
-from functools import wraps
+from functools import partial, wraps
 from typing import List, Tuple, Union
 
 from graphql import GraphQLInterfaceType, GraphQLObjectType, GraphQLUnionType
@@ -119,25 +119,24 @@ def limits_for_field(field, old_limits, **kwargs) -> Tuple[Limits, Limits]:
     return merge_limits(old_limits, effective_limits), effective_limits
 
 
-def check_resource_usage(
+def _check_resource_usage(
     schema,
     node: Node,
     validation_context: ValidationContext,
     *,
     limits: Limits,
     on_error: Callable[[GraphQLError], None],
+    get_result,
+    get_limits_for_field,
+    get_gas_for_field,
+    seen_limits,
+    graphql_path,
+    level_depth,
+    level_complexity,
     auto_snakecase=False,
     camelcase_path=True,
     path_ignore_pattern: re.Pattern = _default_path_ignore_pattern,
-    get_limits_for_field=limits_for_field,
-    get_gas_for_field=gas_for_field,
-    level_depth=0,
-    level_complexity=0,
-    _seen_limits=None,
-    graphql_path="",
 ) -> UsagesResult:
-    if _seen_limits is None:
-        _seen_limits = set()
     # level 0: starts on query level. Every query is level 1
     retval = UsagesResult(
         max_level_depth=level_depth,
@@ -194,11 +193,12 @@ def check_resource_usage(
             if path_ignore_pattern.match(_npath):
                 field_contributes_to_score = False
             for field_type in validation_context.schema.get_possible_types(field):
-                local_result = check_resource_usage(
+                yield partial(
+                    _check_resource_usage,
                     follow_of_type(field_type),
                     field,
                     validation_context,
-                    merged_limits,
+                    limits=merged_limits,
                     on_error=on_error,
                     auto_snakecase=auto_snakecase,
                     camelcase_path=camelcase_path,
@@ -210,9 +210,11 @@ def check_resource_usage(
                     else level_depth,
                     # don't increase complexity, in unions it stays the same
                     level_complexity=level_complexity,
-                    _seen_limits=_seen_limits,
+                    seen_limits=seen_limits,
                     graphql_path=_npath,
+                    get_result=get_result,
                 )
+                local_result = get_result()
 
                 # we know here, that there are no individual sub_limits
 
@@ -273,10 +275,10 @@ def check_resource_usage(
             if sub_limits is not MISSING:
                 id_sub_limits = id(sub_limits)
                 # loop detected, cannot reset via sub_limits
-                if id_sub_limits in _seen_limits:
+                if id_sub_limits in seen_limits:
                     allow_restart_counters = False
                 else:
-                    _seen_limits.add(id_sub_limits)
+                    seen_limits.add(id_sub_limits)
             if isinstance(
                 schema_field,
                 (GraphQLUnionType, GraphQLInterfaceType, GraphQLObjectType),
@@ -284,7 +286,8 @@ def check_resource_usage(
                 sub_field_type = schema_field
             else:
                 sub_field_type = follow_of_type(schema_field.type)
-            local_result = check_resource_usage(
+            yield partial(
+                _check_resource_usage,
                 sub_field_type,
                 field,
                 validation_context,
@@ -302,9 +305,11 @@ def check_resource_usage(
                 level_complexity=level_complexity + field_contributes_to_score
                 if sub_limits.complexity is MISSING or not allow_restart_counters
                 else 1,
-                _seen_limits=_seen_limits,
+                seen_limits=seen_limits,
                 graphql_path=_npath,
+                get_result=get_result,
             )
+            local_result = get_result()
             # called per query, selection
             if (
                 merged_limits.complexity
@@ -362,7 +367,56 @@ def check_resource_usage(
             on_error(
                 GasLimitReached("Query uses too much gas", node, used_resources=retval)
             )
-    return retval
+    yield retval
+
+
+def check_resource_usage(
+    schema,
+    node: Node,
+    validation_context: ValidationContext,
+    *,
+    limits: Limits,
+    on_error: Callable[[GraphQLError], None],
+    auto_snakecase=False,
+    camelcase_path=True,
+    path_ignore_pattern: re.Pattern = _default_path_ignore_pattern,
+    get_limits_for_field=limits_for_field,
+    get_gas_for_field=gas_for_field,
+):
+    result_stack = []
+    seen_limits = set()
+
+    fn_stack = [
+        _check_resource_usage(
+            schema,
+            node,
+            validation_context,
+            limits=limits,
+            on_error=on_error,
+            auto_snakecase=auto_snakecase,
+            camelcase_path=camelcase_path,
+            path_ignore_pattern=path_ignore_pattern,
+            get_gas_for_field=get_gas_for_field,
+            get_limits_for_field=get_limits_for_field,
+            seen_limits=seen_limits,
+            get_result=result_stack.pop,
+            graphql_path="",
+            level_depth=0,
+            level_complexity=0,
+        )
+    ]
+
+    while fn_stack:
+        cur_el = fn_stack[-1]
+        try:
+            next_el = next(cur_el)
+            if isinstance(next_el, partial):
+                fn_stack.append(next_el())
+            else:
+                result_stack.append(next_el)
+        except StopIteration:
+            fn_stack.pop()
+    return result_stack.pop()
 
 
 def gas_usage(gas_used: Union[Callable[[], int], int]):

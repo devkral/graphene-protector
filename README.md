@@ -285,7 +285,7 @@ Note: graphql itself will fail because they are not using a stack free approach.
 
 # TODO
 
--   manually construct the graphql tree for tests for check_resource_usages
+-   manually construct the graphql tree for tests for check_resource_usage
 -   fill RessourceLimits (graphql errors) with details like the field where the limit was reached
 -   improve documentation
 -   keep an eye on the performance impact of the new path regex checking

@@ -283,6 +283,19 @@ Note: graphql itself will fail because they are not using a stack free approach.
     looks nice but very hard to implement. Handling costs at client and server side synchronously is complicated.
     Also the costs are baked into the schema, which crosses the boundary between static and dynamic
 
+# Security Advise
+
+Please note, that this project doesn't prevent resource exhaustion attacks by using a huge amount of tokens. This project
+prevents attacks after the string has been parsed to a node graph.
+
+Please see token limiter (e.g. strawberry.extensions TokenLimiter) for that purpose. Or set manually the token limit to an appropiate value
+e.g. 1000 (ExecutionContext), see the strawbbery extension for an example
+
+Note also, that because of the recursive parsing of strings, there is the possibility to cause an exception
+by using very deep graphs (> 200 level).
+Because this attack is also taking place while string parsing (string to graph), I cannot stop it.
+The effects are very limitted because of the security features of python (stops after 1000 level depth) and returns an exception which stops the graph parsing
+
 # TODO
 
 -   manually construct the graphql tree for tests for check_resource_usage

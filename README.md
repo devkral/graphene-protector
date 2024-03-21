@@ -294,7 +294,7 @@ e.g. 1000 (ExecutionContext), see the strawbbery extension for an example
 Note also, that because of the recursive parsing of strings, there is the possibility to cause an exception
 by using very deep graphs (> 200 level).
 Because this attack is also taking place while string parsing (string to graph), I cannot stop it.
-The effects are very limitted because of the security features of python (stops after 1000 level depth) and returns an exception which stops the graph parsing
+The effects are limited because of the security features of python (stops after 1000 level depth) and returns an exception which stops the graph parsing
 
 # TODO
 
